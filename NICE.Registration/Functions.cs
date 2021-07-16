@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 using Amazon.Lambda.Core;
@@ -11,7 +12,6 @@ using Amazon;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 
-using Newtonsoft.Json;
 using NICE.Registration;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
@@ -76,7 +76,7 @@ namespace AWSServerless2
             var response = new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
-                Body = JsonConvert.SerializeObject(page),
+                Body = JsonSerializer.Serialize(page), // JsonConvert.SerializeObject(page),
                 Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
             };
 
@@ -120,7 +120,7 @@ namespace AWSServerless2
             var response = new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
-                Body = JsonConvert.SerializeObject(blog),
+                Body = JsonSerializer.Serialize(blog), //JsonConvert.SerializeObject(blog),
                 Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
             };
             return response;
@@ -133,7 +133,7 @@ namespace AWSServerless2
         /// <returns></returns>
         public async Task<APIGatewayProxyResponse> AddBlogAsync(APIGatewayProxyRequest request, ILambdaContext context)
         {
-            var blog = JsonConvert.DeserializeObject<Registration>(request?.Body);
+	        var blog = JsonSerializer.Deserialize<Registration>(request?.Body); // JsonConvert.DeserializeObject<Registration>(request?.Body);
             blog.Id = Guid.NewGuid().ToString();
             blog.CreatedTimestamp = DateTime.Now;
 
