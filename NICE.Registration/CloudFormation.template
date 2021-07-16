@@ -1,0 +1,523 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Transform": "AWS::Serverless-2016-10-31",
+    "Description": "AWS Serverless API for Stakeholder Registration, using REST API lambda functions communnicating with DynamoDB.",
+    "Parameters": {
+        "ReadCapacity": {
+            "Type": "Number",
+            "Description": "Read capacity for the DynamoDB table.",
+            "Default": "2",
+            "MinValue": 1
+        },
+        "WriteCapacity": {
+            "Type": "Number",
+            "Description": "Write capacity for the DynamoDB table.",
+            "Default": "2",
+            "MinValue": 1
+        },
+        "RegistrationTableName": {
+            "Type": "String",
+            "Description": "Name of DynamoDB table used to store the registrations",
+            "MinLength": "3",
+            "Default": "Registration"
+        },
+        "CodeBucket": {
+            "Type": "String",
+            "Description": "Location in S3 of the code to use for the lambda functions",
+            "MinLength": "10",
+            "Default": "s3://jwcodefordevtotest"
+        },
+        "CodeFilename": {
+            "Type": "String",
+            "Description": "Location in S3 of the code to use for the lambda functions",
+            "MinLength": "10",
+            "Default": "publish.zip"
+        },
+        "ShouldCreateTable": {
+            "Type": "String",
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "Description": "If true then the DynamoDB Registration table will be created with the CloudFormation stack.",
+            "Default": "false"
+        }
+    },
+    "Conditions": {
+        "CreateTable": {
+            "Fn::Equals": [
+                {
+                    "Ref": "ShouldCreateTable"
+                },
+                "true"
+            ]
+        }
+    },
+    "Resources": {
+        "GetBlogs": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "Handler": "NICE.Registration::NICE.Registration.Functions::GetBlogsAsync",
+                "Runtime": "dotnetcore3.1",
+                "CodeUri": {
+                    "Key": {
+                        "Ref": "CodeFilename"
+                    },
+                    "Bucket": {
+                        "Ref": "CodeBucket"
+                    }
+                },
+                "Description": "Function to get a list of blogs",
+                "MemorySize": 256,
+                "Timeout": 30,
+                "Role": {
+                    "Ref": "RoleForRegistrationAPILambdas"
+                },
+                "Policies": [
+                    {
+                        "Ref": "PolicyForRegistrationAPILambdas"
+                    }
+                ],
+                "Environment": {
+                    "Variables": {
+                        "BlogTable": {
+                            "Fn::If": [
+                                "CreateTable",
+                                {
+                                    "Ref": "RegistrationTable"
+                                },
+                                {
+                                    "Ref": "RegistrationTableName"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "Events": {
+                    "PutResource": {
+                        "Type": "Api",
+                        "Properties": {
+                            "Path": "/",
+                            "Method": "GET"
+                        }
+                    }
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "c8a0cb9d-e4ae-4227-b3b5-de8cbf783608"
+                }
+            },
+            "DependsOn": [
+                "PolicyForRegistrationAPILambdas"
+            ]
+        },
+        "GetBlog": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "Handler": "AWSServerless2::AWSServerless2.Functions::GetBlogAsync",
+                "Runtime": "dotnetcore3.1",
+                "CodeUri": {
+                    "Key": {
+                        "Ref": "CodeFilename"
+                    },
+                    "Bucket": {
+                        "Ref": "CodeBucket"
+                    }
+                },
+                "Description": "Function to get a single blog",
+                "MemorySize": 256,
+                "Timeout": 30,
+                "Role": {
+                    "Ref": "RoleForRegistrationAPILambdas"
+                },
+                "Policies": [
+                    {
+                        "Ref": "PolicyForRegistrationAPILambdas"
+                    }
+                ],
+                "Environment": {
+                    "Variables": {
+                        "BlogTable": {
+                            "Fn::If": [
+                                "CreateTable",
+                                {
+                                    "Ref": "RegistrationTable"
+                                },
+                                {
+                                    "Ref": "RegistrationTableName"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "Events": {
+                    "PutResource": {
+                        "Type": "Api",
+                        "Properties": {
+                            "Path": "/{Id}",
+                            "Method": "GET"
+                        }
+                    }
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "9c9b26f9-2b76-419a-b4e0-20035348d577"
+                }
+            },
+            "DependsOn": [
+                "PolicyForRegistrationAPILambdas"
+            ]
+        },
+        "AddBlog": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "Handler": "AWSServerless2::AWSServerless2.Functions::AddBlogAsync",
+                "Runtime": "dotnetcore3.1",
+                "CodeUri": {
+                    "Key": {
+                        "Ref": "CodeFilename"
+                    },
+                    "Bucket": {
+                        "Ref": "CodeBucket"
+                    }
+                },
+                "Description": "Function to add a blog",
+                "MemorySize": 256,
+                "Timeout": 30,
+                "Role": {
+                    "Ref": "RoleForRegistrationAPILambdas"
+                },
+                "Policies": [
+                    {
+                        "Ref": "PolicyForRegistrationAPILambdas"
+                    }
+                ],
+                "Environment": {
+                    "Variables": {
+                        "BlogTable": {
+                            "Fn::If": [
+                                "CreateTable",
+                                {
+                                    "Ref": "RegistrationTable"
+                                },
+                                {
+                                    "Ref": "RegistrationTableName"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "Events": {
+                    "PutResource": {
+                        "Type": "Api",
+                        "Properties": {
+                            "Path": "/",
+                            "Method": "PUT"
+                        }
+                    }
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "c7189a69-2f03-4e48-87af-99906db0dc42"
+                }
+            },
+            "DependsOn": [
+                "PolicyForRegistrationAPILambdas"
+            ]
+        },
+        "RemoveBlog": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "Handler": "AWSServerless2::AWSServerless2.Functions::RemoveBlogAsync",
+                "Runtime": "dotnetcore3.1",
+                "CodeUri": {
+                    "Key": {
+                        "Ref": "CodeFilename"
+                    },
+                    "Bucket": {
+                        "Ref": "CodeBucket"
+                    }
+                },
+                "Description": "Function to remove a blog",
+                "MemorySize": 256,
+                "Timeout": 30,
+                "Role": {
+                    "Ref": "RoleForRegistrationAPILambdas"
+                },
+                "Policies": [
+                    {
+                        "Ref": "PolicyForRegistrationAPILambdas"
+                    }
+                ],
+                "Environment": {
+                    "Variables": {
+                        "BlogTable": {
+                            "Fn::If": [
+                                "CreateTable",
+                                {
+                                    "Ref": "RegistrationTable"
+                                },
+                                {
+                                    "Ref": "RegistrationTableName"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "Events": {
+                    "PutResource": {
+                        "Type": "Api",
+                        "Properties": {
+                            "Path": "/",
+                            "Method": "DELETE"
+                        }
+                    }
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "0dffe07c-a1fe-4b53-b582-bc473981b90b"
+                }
+            },
+            "DependsOn": [
+                "PolicyForRegistrationAPILambdas"
+            ]
+        },
+        "RegistrationTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Condition": "CreateTable",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+                "TableName": {
+                    "Ref": "RegistrationTableName"
+                },
+                "AttributeDefinitions": [
+                    {
+                        "AttributeName": "Id",
+                        "AttributeType": "S"
+                    }
+                ],
+                "KeySchema": [
+                    {
+                        "AttributeName": "Id",
+                        "KeyType": "HASH"
+                    }
+                ],
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": {
+                        "Ref": "ReadCapacity"
+                    },
+                    "WriteCapacityUnits": {
+                        "Ref": "WriteCapacity"
+                    }
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "8e7ed7c7-9a49-4cec-b881-a81e9830292e"
+                }
+            }
+        },
+        "PolicyForRegistrationAPILambdas": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "PolicyForRegistrationAPILambdas",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "lambda:CreateFunction",
+                                "lambda:DeleteProvisionedConcurrencyConfig",
+                                "lambda:GetFunctionConfiguration",
+                                "lambda:ListProvisionedConcurrencyConfigs",
+                                "lambda:GetProvisionedConcurrencyConfig",
+                                "lambda:ListLayers",
+                                "lambda:ListLayerVersions",
+                                "lambda:DeleteFunction",
+                                "lambda:GetAlias",
+                                "lambda:ListCodeSigningConfigs",
+                                "lambda:UpdateFunctionEventInvokeConfig",
+                                "lambda:DeleteFunctionCodeSigningConfig",
+                                "lambda:ListFunctions",
+                                "lambda:GetEventSourceMapping",
+                                "lambda:InvokeFunction",
+                                "lambda:ListAliases",
+                                "lambda:GetFunctionCodeSigningConfig",
+                                "lambda:UpdateAlias",
+                                "lambda:UpdateFunctionCode",
+                                "lambda:ListFunctionEventInvokeConfigs",
+                                "lambda:ListFunctionsByCodeSigningConfig",
+                                "lambda:GetFunctionConcurrency",
+                                "lambda:PutProvisionedConcurrencyConfig",
+                                "lambda:ListEventSourceMappings",
+                                "lambda:PublishVersion",
+                                "lambda:DeleteEventSourceMapping",
+                                "lambda:CreateAlias",
+                                "lambda:ListVersionsByFunction",
+                                "lambda:GetLayerVersion",
+                                "lambda:PublishLayerVersion",
+                                "lambda:InvokeAsync",
+                                "lambda:GetAccountSettings",
+                                "lambda:CreateEventSourceMapping",
+                                "lambda:GetLayerVersionPolicy",
+                                "lambda:PutFunctionConcurrency",
+                                "lambda:DeleteCodeSigningConfig",
+                                "lambda:ListTags",
+                                "lambda:DeleteLayerVersion",
+                                "lambda:PutFunctionEventInvokeConfig",
+                                "lambda:DeleteFunctionEventInvokeConfig",
+                                "lambda:CreateCodeSigningConfig",
+                                "lambda:PutFunctionCodeSigningConfig",
+                                "lambda:UpdateEventSourceMapping",
+                                "lambda:UpdateFunctionCodeSigningConfig",
+                                "lambda:GetFunction",
+                                "lambda:UpdateFunctionConfiguration",
+                                "lambda:UpdateCodeSigningConfig",
+                                "lambda:GetFunctionEventInvokeConfig",
+                                "lambda:DeleteAlias",
+                                "lambda:DeleteFunctionConcurrency",
+                                "lambda:GetCodeSigningConfig",
+                                "lambda:GetPolicy"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "RoleForRegistrationAPILambdas"
+                    }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "14709170-5ea1-4d9e-9e3f-8e9278008fc3"
+                }
+            },
+            "DependsOn": [
+                "RoleForRegistrationAPILambdas"
+            ]
+        },
+        "RoleForRegistrationAPILambdas": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "Description": "Role for the stakeholder registration API lambdas to use",
+                "Path": "/service-role/"
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "944d9d74-79cd-42d9-bde7-f7f55ec28cc9"
+                }
+            }
+        }
+    },
+    "Outputs": {},
+    "Metadata": {
+        "AWS::CloudFormation::Designer": {
+            "8e7ed7c7-9a49-4cec-b881-a81e9830292e": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 30,
+                    "y": 140
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "0dffe07c-a1fe-4b53-b582-bc473981b90b": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": -120,
+                    "y": 100
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "c7189a69-2f03-4e48-87af-99906db0dc42": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": -120,
+                    "y": 20
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "9c9b26f9-2b76-419a-b4e0-20035348d577": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": -120,
+                    "y": 260
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "c8a0cb9d-e4ae-4227-b3b5-de8cbf783608": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": -120,
+                    "y": 180
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "14709170-5ea1-4d9e-9e3f-8e9278008fc3": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": -560,
+                    "y": 30
+                },
+                "z": 0,
+                "embeds": [],
+                "dependson": [
+                    "944d9d74-79cd-42d9-bde7-f7f55ec28cc9"
+                ]
+            },
+            "944d9d74-79cd-42d9-bde7-f7f55ec28cc9": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": -540,
+                    "y": 140
+                },
+                "z": 0,
+                "embeds": []
+            }
+        }
+    }
+}

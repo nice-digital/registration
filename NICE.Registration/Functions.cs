@@ -1,29 +1,25 @@
+using Amazon;
+using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
+using Amazon.Lambda.APIGatewayEvents;
+using Amazon.Lambda.Core;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-using Amazon.Lambda.Core;
-using Amazon.Lambda.APIGatewayEvents;
-
-using Amazon;
-using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
-
-using NICE.Registration;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
-namespace AWSServerless2
+namespace NICE.Registration
 {
-    public class Functions
+	public class Functions
     {
         // This const is the name of the environment variable that the serverless.template will use to set
         // the name of the DynamoDB table used to store blog posts.
-        const string TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP = "BlogTable";
+        const string TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP = "RegistrationTableName";
 
         public const string ID_QUERY_STRING_NAME = "Id";
         IDynamoDBContext DDBContext { get; set; }

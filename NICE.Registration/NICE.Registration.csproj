@@ -5,9 +5,6 @@
     <AWSProjectType>Lambda</AWSProjectType>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="C:\Users\morph\Desktop\serverless.template" Link="serverless.template" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.0.43" />
     <PackageReference Include="Amazon.Lambda.Core" Version="2.0.0" />
     <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.1.0" />
