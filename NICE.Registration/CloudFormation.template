@@ -114,7 +114,7 @@
         "GetBlog": {
             "Type": "AWS::Serverless::Function",
             "Properties": {
-                "Handler": "AWSServerless2::AWSServerless2.Functions::GetBlogAsync",
+                "Handler": "NICE.Registration::NICE.Registration.Functions::GetBlogAsync",
                 "Runtime": "dotnetcore3.1",
                 "CodeUri": {
                     "Key": {
@@ -171,7 +171,7 @@
         "AddBlog": {
             "Type": "AWS::Serverless::Function",
             "Properties": {
-                "Handler": "AWSServerless2::AWSServerless2.Functions::AddBlogAsync",
+                "Handler": "NICE.Registration::NICE.Registration.Functions::AddBlogAsync",
                 "Runtime": "dotnetcore3.1",
                 "CodeUri": {
                     "Key": {
@@ -228,7 +228,7 @@
         "RemoveBlog": {
             "Type": "AWS::Serverless::Function",
             "Properties": {
-                "Handler": "AWSServerless2::AWSServerless2.Functions::RemoveBlogAsync",
+                "Handler": "NICE.Registration::NICE.Registration.Functions::RemoveBlogAsync",
                 "Runtime": "dotnetcore3.1",
                 "CodeUri": {
                     "Key": {
