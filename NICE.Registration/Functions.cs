@@ -131,13 +131,18 @@ namespace NICE.Registration
         {
             var tableName = System.Environment.GetEnvironmentVariable(TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP);
             context.Logger.LogLine($"AddBlogAsync tablename:{tableName}");
+            var config = new DynamoDBOperationConfig
+            {
+                OverrideTableName = tableName
+            };
+
 
             var blog = JsonSerializer.Deserialize<Registration>(request?.Body); // JsonConvert.DeserializeObject<Registration>(request?.Body);
             blog.Id = Guid.NewGuid().ToString();
             blog.CreatedTimestamp = DateTime.Now;
 
             context.Logger.LogLine($"Saving blog with id {blog.Id}");
-            await DDBContext.SaveAsync<Registration>(blog);
+            await DDBContext.SaveAsync<Registration>(blog, config);
 
             var response = new APIGatewayProxyResponse
             {
