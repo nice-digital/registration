@@ -82,7 +82,7 @@
                 ],
                 "Environment": {
                     "Variables": {
-                        "BlogTable": {
+                        "RegistrationTableName": {
                             "Fn::If": [
                                 "CreateTable",
                                 {
@@ -139,7 +139,7 @@
                 ],
                 "Environment": {
                     "Variables": {
-                        "BlogTable": {
+                        "RegistrationTableName": {
                             "Fn::If": [
                                 "CreateTable",
                                 {
@@ -196,7 +196,7 @@
                 ],
                 "Environment": {
                     "Variables": {
-                        "BlogTable": {
+                        "RegistrationTableName": {
                             "Fn::If": [
                                 "CreateTable",
                                 {
@@ -253,7 +253,7 @@
                 ],
                 "Environment": {
                     "Variables": {
-                        "BlogTable": {
+                        "RegistrationTableName": {
                             "Fn::If": [
                                 "CreateTable",
                                 {
