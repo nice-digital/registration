@@ -129,7 +129,10 @@ namespace NICE.Registration
         /// <returns></returns>
         public async Task<APIGatewayProxyResponse> AddBlogAsync(APIGatewayProxyRequest request, ILambdaContext context)
         {
-	        var blog = JsonSerializer.Deserialize<Registration>(request?.Body); // JsonConvert.DeserializeObject<Registration>(request?.Body);
+            var tableName = System.Environment.GetEnvironmentVariable(TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP);
+            context.Logger.LogLine($"AddBlogAsync tablename:{tableName}");
+
+            var blog = JsonSerializer.Deserialize<Registration>(request?.Body); // JsonConvert.DeserializeObject<Registration>(request?.Body);
             blog.Id = Guid.NewGuid().ToString();
             blog.CreatedTimestamp = DateTime.Now;
 
