@@ -32,7 +32,7 @@ namespace NICE.Registration
             var tableName = System.Environment.GetEnvironmentVariable(TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP);
             if(string.IsNullOrEmpty(tableName))
             {
-                tableName = "Registration-local";
+                tableName = "Registration-alpha";
             }
 
             AWSConfigsDynamoDB.Context.TypeMappings[typeof(Registration)] = new Amazon.Util.TypeMapping(typeof(Registration), tableName);
@@ -81,7 +81,7 @@ namespace NICE.Registration
                 };
             }
 
-            context.Logger.LogLine("Getting registrations");
+            context.Logger.LogLine($"Getting registrations for {userNameIdentifier}");
 
             var search = this.DDBContext.ScanAsync<Registration>(new List<ScanCondition>()
             {
@@ -89,10 +89,12 @@ namespace NICE.Registration
             });
             var registrationsForUser = new List<Registration>();
 
+            context.Logger.LogLine("About to query dynamodb");
             do
             {
 	            var pageOfRegistrations = await search.GetNextSetAsync();
-	            registrationsForUser.AddRange(pageOfRegistrations);
+	            context.Logger.LogLine($"page result count: {pageOfRegistrations.Count}");
+                registrationsForUser.AddRange(pageOfRegistrations);
             } while (!search.IsDone);
 
             context.Logger.LogLine($"Found {registrationsForUser.Count} registrations");
