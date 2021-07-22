@@ -5,11 +5,11 @@
     "dotnet lambda help",
     "All the command line options for the Lambda command can be specified in this file."
   ],
-  "profile": "deploy",
+  "profile": "",
   "region": "eu-west-1",
   "configuration": "Release",
   "framework": "netcoreapp3.1",
   "s3-prefix": "NICE.Registration/",
-  "template": "CloudFormationTemplate.json",
-  "template-parameters": "ShouldCreateTable=true;BlogTableName="
+  "template": "CloudFormation.template",
+  "template-parameters": "ShouldCreateTable=true;RegistrationTableName=Registration-Local"
 }

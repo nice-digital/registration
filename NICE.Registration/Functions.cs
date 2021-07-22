@@ -9,7 +9,6 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
@@ -21,7 +20,6 @@ namespace NICE.Registration
         // the name of the DynamoDB table used to store blog posts.
         const string TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP = "RegistrationTableName";
 
-        public const string ID_QUERY_STRING_NAME = "Id";
         IDynamoDBContext DDBContext { get; set; }
 
         /// <summary>
@@ -32,10 +30,12 @@ namespace NICE.Registration
             // Check to see if a table name was passed in through environment variables and if so 
             // add the table mapping.
             var tableName = System.Environment.GetEnvironmentVariable(TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP);
-            if(!string.IsNullOrEmpty(tableName))
+            if(string.IsNullOrEmpty(tableName))
             {
-                AWSConfigsDynamoDB.Context.TypeMappings[typeof(Registration)] = new Amazon.Util.TypeMapping(typeof(Registration), tableName);
+                tableName = "Registration-local";
             }
+
+            AWSConfigsDynamoDB.Context.TypeMappings[typeof(Registration)] = new Amazon.Util.TypeMapping(typeof(Registration), tableName);
 
             var config = new DynamoDBContextConfig { Conversion = DynamoDBEntryConversion.V2 };
             this.DDBContext = new DynamoDBContext(new AmazonDynamoDBClient(), config);
@@ -58,129 +58,76 @@ namespace NICE.Registration
         }
 
         /// <summary>
-        /// A Lambda function that returns back a page worth of blog posts.
+        /// A Lambda function that returns back all the registrations for a user - paging through the dynamodb table if necessary
         /// </summary>
-        /// <param name="request"></param>
-        /// <returns>The list of blogs</returns>
-        public async Task<APIGatewayProxyResponse> GetBlogsAsync(APIGatewayProxyRequest request, ILambdaContext context)
+        /// <param name="request">the UserNameIdentifier identifier needs to be passed by querystring or path parameter</param>
+        /// <returns>The list of registrations</returns>
+        public async Task<APIGatewayProxyResponse> GetRegistrationsForUserAsync(APIGatewayProxyRequest request, ILambdaContext context)
         {
-            context.Logger.LogLine("Getting blogs");
-            var search = this.DDBContext.ScanAsync<Registration>(null);
-            var page = await search.GetNextSetAsync();
-            context.Logger.LogLine($"Found {page.Count} blogs");
+            string userNameIdentifier = null;
+            const string nameIdentifierPropertyName = nameof(Registration.UserNameIdentifier);
 
-            var response = new APIGatewayProxyResponse
-            {
-                StatusCode = (int)HttpStatusCode.OK,
-                Body = JsonSerializer.Serialize(page), // JsonConvert.SerializeObject(page),
-                Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
-            };
+            if (request.PathParameters != null && request.PathParameters.ContainsKey(nameIdentifierPropertyName))
+	            userNameIdentifier = request.PathParameters[nameIdentifierPropertyName];
+            else if (request.QueryStringParameters != null && request.QueryStringParameters.ContainsKey(nameIdentifierPropertyName))
+	            userNameIdentifier = request.QueryStringParameters[nameIdentifierPropertyName];
 
-            return response;
-        }
-
-        /// <summary>
-        /// A Lambda function that returns the blog identified by blogId
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        public async Task<APIGatewayProxyResponse> GetBlogAsync(APIGatewayProxyRequest request, ILambdaContext context)
-        {
-            string blogId = null;
-            if (request.PathParameters != null && request.PathParameters.ContainsKey(ID_QUERY_STRING_NAME))
-                blogId = request.PathParameters[ID_QUERY_STRING_NAME];
-            else if (request.QueryStringParameters != null && request.QueryStringParameters.ContainsKey(ID_QUERY_STRING_NAME))
-                blogId = request.QueryStringParameters[ID_QUERY_STRING_NAME];
-
-            if (string.IsNullOrEmpty(blogId))
+            if (string.IsNullOrEmpty(userNameIdentifier))
             {
                 return new APIGatewayProxyResponse
                 {
                     StatusCode = (int)HttpStatusCode.BadRequest,
-                    Body = $"Missing required parameter {ID_QUERY_STRING_NAME}"
+                    Body = $"Missing required parameter {nameIdentifierPropertyName}"
                 };
             }
 
-            context.Logger.LogLine($"Getting blog {blogId}");
-            var blog = await DDBContext.LoadAsync<Registration>(blogId);
-            context.Logger.LogLine($"Found blog: {blog != null}");
+            context.Logger.LogLine("Getting registrations");
 
-            if (blog == null)
+            var search = this.DDBContext.ScanAsync<Registration>(new List<ScanCondition>()
             {
-                return new APIGatewayProxyResponse
-                {
-                    StatusCode = (int)HttpStatusCode.NotFound
-                };
-            }
+	            new ScanCondition(nameIdentifierPropertyName, Amazon.DynamoDBv2.DocumentModel.ScanOperator.Equal, userNameIdentifier)
+            });
+            var registrationsForUser = new List<Registration>();
+
+            do
+            {
+	            var pageOfRegistrations = await search.GetNextSetAsync();
+	            registrationsForUser.AddRange(pageOfRegistrations);
+            } while (!search.IsDone);
+
+            context.Logger.LogLine($"Found {registrationsForUser.Count} registrations");
 
             var response = new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
-                Body = JsonSerializer.Serialize(blog), //JsonConvert.SerializeObject(blog),
+                Body = JsonSerializer.Serialize(registrationsForUser), 
                 Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
             };
+
             return response;
         }
 
         /// <summary>
-        /// A Lambda function that adds a blog post.
+        /// A Lambda function that adds a registration.
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        public async Task<APIGatewayProxyResponse> AddBlogAsync(APIGatewayProxyRequest request, ILambdaContext context)
+        public async Task<APIGatewayProxyResponse> AddRegistrationAsync(APIGatewayProxyRequest request, ILambdaContext context)
         {
-            var tableName = System.Environment.GetEnvironmentVariable(TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP);
-            context.Logger.LogLine($"AddBlogAsync tablename:{tableName}");
-            var config = new DynamoDBOperationConfig
-            {
-                OverrideTableName = tableName
-            };
+            var registration = JsonSerializer.Deserialize<Registration>(request?.Body); 
 
+            registration.Id = Guid.NewGuid().ToString();
 
-            var blog = JsonSerializer.Deserialize<Registration>(request?.Body); // JsonConvert.DeserializeObject<Registration>(request?.Body);
-            blog.Id = Guid.NewGuid().ToString();
-            blog.CreatedTimestamp = DateTime.Now;
-
-            context.Logger.LogLine($"Saving blog with id {blog.Id}");
-            await DDBContext.SaveAsync<Registration>(blog, config);
+            context.Logger.LogLine($"Saving registration with id {registration.Id}");
+            await DDBContext.SaveAsync<Registration>(registration);
 
             var response = new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
-                Body = blog.Id.ToString(),
+                Body = registration.Id.ToString(),
                 Headers = new Dictionary<string, string> { { "Content-Type", "text/plain" } }
             };
             return response;
-        }
-
-        /// <summary>
-        /// A Lambda function that removes a blog post from the DynamoDB table.
-        /// </summary>
-        /// <param name="request"></param>
-        public async Task<APIGatewayProxyResponse> RemoveBlogAsync(APIGatewayProxyRequest request, ILambdaContext context)
-        {
-            string blogId = null;
-            if (request.PathParameters != null && request.PathParameters.ContainsKey(ID_QUERY_STRING_NAME))
-                blogId = request.PathParameters[ID_QUERY_STRING_NAME];
-            else if (request.QueryStringParameters != null && request.QueryStringParameters.ContainsKey(ID_QUERY_STRING_NAME))
-                blogId = request.QueryStringParameters[ID_QUERY_STRING_NAME];
-
-            if (string.IsNullOrEmpty(blogId))
-            {
-                return new APIGatewayProxyResponse
-                {
-                    StatusCode = (int)HttpStatusCode.BadRequest,
-                    Body = $"Missing required parameter {ID_QUERY_STRING_NAME}"
-                };
-            }
-
-            context.Logger.LogLine($"Deleting blog with id {blogId}");
-            await this.DDBContext.DeleteAsync<Registration>(blogId);
-
-            return new APIGatewayProxyResponse
-            {
-                StatusCode = (int)HttpStatusCode.OK
-            };
         }
     }
 }

@@ -1,7 +1,7 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Transform": "AWS::Serverless-2016-10-31",
-    "Description": "AWS Serverless API for Stakeholder Registration, using REST API lambda functions communnicating with DynamoDB.",
+    "Description": "AWS Serverless API for Stakeholder Registration, using REST API lambda functions communicating with DynamoDB.",
     "Parameters": {
         "ReadCapacity": {
             "Type": "Number",
@@ -54,10 +54,10 @@
         }
     },
     "Resources": {
-        "GetBlogs": {
+        "GetRegistrationsForUser": {
             "Type": "AWS::Serverless::Function",
             "Properties": {
-                "Handler": "NICE.Registration::NICE.Registration.Functions::GetBlogsAsync",
+                "Handler": "NICE.Registration::NICE.Registration.Functions::GetRegistrationsForUserAsync",
                 "Runtime": "dotnetcore3.1",
                 "CodeUri": {
                     "Key": {
@@ -111,67 +111,10 @@
                 }
             }
         },
-        "GetBlog": {
+        "AddRegistration": {
             "Type": "AWS::Serverless::Function",
             "Properties": {
-                "Handler": "NICE.Registration::NICE.Registration.Functions::GetBlogAsync",
-                "Runtime": "dotnetcore3.1",
-                "CodeUri": {
-                    "Key": {
-                        "Ref": "CodeFilename"
-                    },
-                    "Bucket": {
-                        "Ref": "CodeBucket"
-                    }
-                },
-                "Description": "Function to get a single blog",
-                "MemorySize": 256,
-                "Timeout": 30,
-                "Role": null,
-                "Policies": [
-                    {
-                        "DynamoDBCrudPolicy": {
-                            "TableName": {
-                                "Ref": "RegistrationTableName"
-                            }
-                        }
-                    }
-                ],
-                "Environment": {
-                    "Variables": {
-                        "RegistrationTableName": {
-                            "Fn::If": [
-                                "CreateTable",
-                                {
-                                    "Ref": "RegistrationTable"
-                                },
-                                {
-                                    "Ref": "RegistrationTableName"
-                                }
-                            ]
-                        }
-                    }
-                },
-                "Events": {
-                    "PutResource": {
-                        "Type": "Api",
-                        "Properties": {
-                            "Path": "/{Id}",
-                            "Method": "GET"
-                        }
-                    }
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "9c9b26f9-2b76-419a-b4e0-20035348d577"
-                }
-            }
-        },
-        "AddBlog": {
-            "Type": "AWS::Serverless::Function",
-            "Properties": {
-                "Handler": "NICE.Registration::NICE.Registration.Functions::AddBlogAsync",
+                "Handler": "NICE.Registration::NICE.Registration.Functions::AddRegistrationAsync",
                 "Runtime": "dotnetcore3.1",
                 "CodeUri": {
                     "Key": {
@@ -225,63 +168,6 @@
                 }
             }
         },
-        "RemoveBlog": {
-            "Type": "AWS::Serverless::Function",
-            "Properties": {
-                "Handler": "NICE.Registration::NICE.Registration.Functions::RemoveBlogAsync",
-                "Runtime": "dotnetcore3.1",
-                "CodeUri": {
-                    "Key": {
-                        "Ref": "CodeFilename"
-                    },
-                    "Bucket": {
-                        "Ref": "CodeBucket"
-                    }
-                },
-                "Description": "Function to remove a blog",
-                "MemorySize": 256,
-                "Timeout": 30,
-                "Role": null,
-                "Policies": [
-                    {
-                        "DynamoDBCrudPolicy": {
-                            "TableName": {
-                                "Ref": "RegistrationTableName"
-                            }
-                        }
-                    }
-                ],
-                "Environment": {
-                    "Variables": {
-                        "RegistrationTableName": {
-                            "Fn::If": [
-                                "CreateTable",
-                                {
-                                    "Ref": "RegistrationTable"
-                                },
-                                {
-                                    "Ref": "RegistrationTableName"
-                                }
-                            ]
-                        }
-                    }
-                },
-                "Events": {
-                    "PutResource": {
-                        "Type": "Api",
-                        "Properties": {
-                            "Path": "/",
-                            "Method": "DELETE"
-                        }
-                    }
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "0dffe07c-a1fe-4b53-b582-bc473981b90b"
-                }
-            }
-        },
         "RegistrationTable": {
             "Type": "AWS::DynamoDB::Table",
             "Condition": "CreateTable",
@@ -291,6 +177,10 @@
                     "Ref": "RegistrationTableName"
                 },
                 "AttributeDefinitions": [
+                     {
+                        "AttributeName": "CreatedTimestampUTC",
+                        "AttributeType": "S"
+                    },
                     {
                         "AttributeName": "Id",
                         "AttributeType": "S"
@@ -300,6 +190,10 @@
                     {
                         "AttributeName": "Id",
                         "KeyType": "HASH"
+                    },
+                    {
+                        "AttributeName": "CreatedTimestampUTC",
+                        "KeyType": "RANGE"
                     }
                 ],
                 "ProvisionedThroughput": {
