@@ -250,3 +250,38 @@ netcoreapp2.0/*
 **/Serilog-*.json
 
 .vscode
+
+############################
+
+# dependencies
+/registrationui/node_modules
+/registrationui/.pnp
+/registrationui/.pnp.js
+
+# testing
+/registrationui/coverage
+
+# next.js
+/registrationui/.next/
+/registrationui/out/
+
+# production
+/registrationui/build
+
+# misc
+/registrationui/.DS_Store
+/registrationui/*.pem
+
+# debug
+/registrationui/npm-debug.log*
+/registrationui/yarn-debug.log*
+/registrationui/yarn-error.log*
+
+# local env files
+/registrationui/.env.local
+/registrationui/.env.development.local
+/registrationui/.env.test.local
+/registrationui/.env.production.local
+
+# vercel
+/registrationui/.vercel
