@@ -5,14 +5,14 @@ export const fetchWrapper = {
     delete: _delete
 };
 
-function get(url) {
+function get(url: string) {
     const requestOptions = {
         method: 'GET'
     };
     return fetch(url, requestOptions).then(handleResponse);
 }
 
-function post(url, body) {
+function post(url: string, body:any) {
     const requestOptions = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -21,7 +21,7 @@ function post(url, body) {
     return fetch(url, requestOptions).then(handleResponse);
 }
 
-function put(url, body) {
+function put(url:string, body: any) {
     const requestOptions = {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -31,7 +31,7 @@ function put(url, body) {
 }
 
 // prefixed with underscored because delete is a reserved word in javascript
-function _delete(url) {
+function _delete(url:string) {
     const requestOptions = {
         method: 'DELETE'
     };
@@ -40,8 +40,8 @@ function _delete(url) {
 
 // helper functions
 
-function handleResponse(response) {
-    return response.text().then(text => {
+function handleResponse(response:any) {
+    return response.text().then((text : any) => {
         const data = text && JSON.parse(text);
 
         if (!response.ok) {
