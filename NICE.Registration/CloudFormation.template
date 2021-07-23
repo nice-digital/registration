@@ -41,6 +41,31 @@
             ],
             "Description": "If true then the DynamoDB Registration table will be created with the CloudFormation stack.",
             "Default": "false"
+        },
+        "TokenIssuer": {
+            "Type": "String",
+            "Description": "The domain of the tenant",
+            "MinLength": "3"
+        },
+        "Audience": {
+            "Type": "String",
+            "Description": "Audience of the API",
+            "MinLength": "3"
+        },
+        "JwksURI": {
+            "Type": "String",
+            "Description": "JWKS Ur",
+            "MinLength": "3"
+        },
+        "CustomAuthorizerCodeBucket": {
+            "Type": "String",
+            "Description": "Location in S3 of the code to use for the custom authoriser for the API Gateway",
+            "MinLength": "10"
+        },
+        "CustomAuthorizerCodeFilename": {
+            "Type": "String",
+            "Description": "Location in S3 of the code to use for the custom authoriser for the API Gateway",
+            "MinLength": "10"
         }
     },
     "Conditions": {
@@ -177,7 +202,7 @@
                     "Ref": "RegistrationTableName"
                 },
                 "AttributeDefinitions": [
-                     {
+                    {
                         "AttributeName": "CreatedTimestampUTC",
                         "AttributeType": "S"
                     },
@@ -210,6 +235,95 @@
                     "id": "8e7ed7c7-9a49-4cec-b881-a81e9830292e"
                 }
             }
+        },
+        "RoleForCustomAuthorizer": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com",
+                                    "apigateway.amazonaws.com"
+                                ]
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                ],
+                "Policies": [
+                    {
+                        "PolicyName": "PolicyForCustomAuthorizerInline",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "lambda:InvokeFunction"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "Description": "Allows Lambda functions to call AWS services on your behalf.",
+                "MaxSessionDuration": 3600,
+                "Path": "/"
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "cc7925cb-a970-49b1-897e-1619d6bd1b2b"
+                }
+            }
+        },
+        "CustomAuthorizerLambda": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "Handler": "index.handler",
+                "Runtime": "nodejs14.x",
+                "CodeUri": {
+                    "Key": {
+                        "Ref": "CustomAuthorizerCodeFilename"
+                    },
+                    "Bucket": {
+                        "Ref": "CustomAuthorizerCodeBucket"
+                    }
+                },
+                "Description": "Custom authorizer lambda function to authenticate REST API Gateway",
+                "MemorySize": 128,
+                "Timeout": 30,
+                "Role": {
+                    "Ref": "RoleForCustomAuthorizer"
+                },
+                "Environment": {
+                    "Variables": {
+                        "TokenIssuer": {
+                            "Ref": "TokenIssuer"
+                        },
+                        "Audience": {
+                            "Ref": "Audience"
+                        },
+                        "JwksURI": {
+                            "Ref": "JwksURI"
+                        }
+                    }
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "90e9b4d8-aefe-4d9b-8234-670330e8698e"
+                }
+            }
         }
     },
     "Outputs": {},
@@ -221,20 +335,8 @@
                     "height": 60
                 },
                 "position": {
-                    "x": 30,
-                    "y": 140
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "0dffe07c-a1fe-4b53-b582-bc473981b90b": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": -120,
-                    "y": 100
+                    "x": 150,
+                    "y": 180
                 },
                 "z": 1,
                 "embeds": []
@@ -245,20 +347,8 @@
                     "height": 60
                 },
                 "position": {
-                    "x": -120,
-                    "y": 20
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "9c9b26f9-2b76-419a-b4e0-20035348d577": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": -120,
-                    "y": 260
+                    "x": 330,
+                    "y": 0
                 },
                 "z": 1,
                 "embeds": []
@@ -269,8 +359,32 @@
                     "height": 60
                 },
                 "position": {
-                    "x": -120,
+                    "x": 40,
                     "y": 180
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "cc7925cb-a970-49b1-897e-1619d6bd1b2b": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 180,
+                    "y": 30
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "90e9b4d8-aefe-4d9b-8234-670330e8698e": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": -20,
+                    "y": 40
                 },
                 "z": 1,
                 "embeds": []
