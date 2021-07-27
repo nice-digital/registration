@@ -346,7 +346,19 @@
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
                 "Name": "StakeholderRegistration",
-                "Description": "This REST API Gateway is used to secure the REST API Lambda functions for Stakeholder registration. A custom authoriser is used by the API Gateway so that the lambda functions don't need to implement authentication.",
+                "Description": {
+                        "Fn::Sub": [
+                            "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function}/invocations",
+                            {
+                                "Function": {
+                                    "Fn::GetAtt": [
+                                        "GetRegistrationsForUser",
+                                        "Arn"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
                 "EndpointConfiguration": {
                     "Types": [
                         "REGIONAL"
@@ -368,7 +380,7 @@
                 "AuthorizerResultTtlInSeconds": 3600,
                 "AuthorizerUri": {
                     "Fn::Sub": [
-                        "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015/03/31/functions/${Function}/invocations",
+                        "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function}/invocations",
                         {
                             "Function": {
                                 "Fn::GetAtt": [
@@ -400,31 +412,14 @@
                 "CustomAuthorizerLambda"
             ]
         },
-        "ResourceForRegistrationAPIGateway": {
-            "Type": "AWS::ApiGateway::Resource",
-            "Properties": {
-                "ParentId": {
-                    "Fn::GetAtt": [
-                        "RegistrationRESTAPIGateway",
-                        "RootResourceId"
-                    ]
-                },
-                "PathPart": "api",
-                "RestApiId": {
-                    "Ref": "RegistrationRESTAPIGateway"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "096cc04c-24fd-4f9c-877c-6f0a43615310"
-                }
-            }
-        },
         "GETMethodForRegistrationAPIGateway": {
             "Type": "AWS::ApiGateway::Method",
             "Properties": {
                 "ResourceId": {
-                    "Ref": "ResourceForRegistrationAPIGateway"
+                    "Fn::GetAtt": [
+                        "RegistrationRESTAPIGateway",
+                        "RootResourceId"
+                    ]
                 },
                 "HttpMethod": "GET",
                 "AuthorizationType": "CUSTOM",
@@ -434,9 +429,11 @@
                 "Integration": {
                     "Type": "AWS_PROXY",
                     "IntegrationHttpMethod": "POST",
+                    "PassthroughBehavior": "WHEN_NO_MATCH",
+                    "ContentHandling": "CONVERT_TO_TEXT",
                     "Uri": {
                         "Fn::Sub": [
-                            "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015/03/31/functions/${Function}/invocations",
+                            "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function}/invocations",
                             {
                                 "Function": {
                                     "Fn::GetAtt": [
@@ -457,7 +454,10 @@
                 "AWS::CloudFormation::Designer": {
                     "id": "2164204e-71ff-4ddc-b444-eb8dc4fd2b53"
                 }
-            }
+            },
+            "DependsOn": [
+                "GetRegistrationsForUser"
+            ]
         },
         "DeploymentOfRESTAPIGateway": {
             "Type": "AWS::ApiGateway::Deployment",
@@ -482,41 +482,21 @@
     "Outputs": {},
     "Metadata": {
         "AWS::CloudFormation::Designer": {
-            "8e7ed7c7-9a49-4cec-b881-a81e9830292e": {
+            "5fd70c6b-e80c-4156-be91-094bac0a45a9": {
                 "size": {
-                    "width": 60,
-                    "height": 60
+                    "width": 330,
+                    "height": 330
                 },
                 "position": {
-                    "x": 420,
-                    "y": 170
+                    "x": 60,
+                    "y": 90
                 },
                 "z": 1,
-                "embeds": []
-            },
-            "c7189a69-2f03-4e48-87af-99906db0dc42": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 100,
-                    "y": 120
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "c8a0cb9d-e4ae-4227-b3b5-de8cbf783608": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 100,
-                    "y": 190
-                },
-                "z": 1,
-                "embeds": []
+                "embeds": [
+                    "8df49797-026c-4373-96de-cd91c83b83a9",
+                    "2164204e-71ff-4ddc-b444-eb8dc4fd2b53",
+                    "835ce6c5-8681-49dd-8b72-d391f6dbc99c"
+                ]
             },
             "cc7925cb-a970-49b1-897e-1619d6bd1b2b": {
                 "size": {
@@ -524,8 +504,8 @@
                     "height": 60
                 },
                 "position": {
-                    "x": -90,
-                    "y": 70
+                    "x": 450,
+                    "y": 90
                 },
                 "z": 1,
                 "embeds": []
@@ -536,28 +516,11 @@
                     "height": 60
                 },
                 "position": {
-                    "x": -390,
-                    "y": -20
+                    "x": 450,
+                    "y": 210
                 },
                 "z": 1,
                 "embeds": []
-            },
-            "5fd70c6b-e80c-4156-be91-094bac0a45a9": {
-                "size": {
-                    "width": 300,
-                    "height": 430
-                },
-                "position": {
-                    "x": -510,
-                    "y": 60
-                },
-                "z": 0,
-                "embeds": [
-                    "835ce6c5-8681-49dd-8b72-d391f6dbc99c",
-                    "096cc04c-24fd-4f9c-877c-6f0a43615310",
-                    "f25d3672-1444-4131-b9b1-f13ee876b0b2",
-                    "8df49797-026c-4373-96de-cd91c83b83a9"
-                ]
             },
             "8df49797-026c-4373-96de-cd91c83b83a9": {
                 "size": {
@@ -565,81 +528,52 @@
                     "height": 60
                 },
                 "position": {
-                    "x": -490,
-                    "y": 100
+                    "x": 90,
+                    "y": 150
                 },
-                "z": 1,
+                "z": 2,
                 "parent": "5fd70c6b-e80c-4156-be91-094bac0a45a9",
                 "embeds": [],
                 "iscontainedinside": [
                     "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
                     "5fd70c6b-e80c-4156-be91-094bac0a45a9"
                 ]
             },
-            "f25d3672-1444-4131-b9b1-f13ee876b0b2": {
+            "8e7ed7c7-9a49-4cec-b881-a81e9830292e": {
                 "size": {
                     "width": 60,
                     "height": 60
                 },
                 "position": {
-                    "x": -480,
-                    "y": 210
+                    "x": 450,
+                    "y": 330
                 },
                 "z": 1,
-                "parent": "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                "embeds": [],
-                "isassociatedwith": [
-                    "835ce6c5-8681-49dd-8b72-d391f6dbc99c"
-                ],
-                "iscontainedinside": [
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9"
-                ]
+                "embeds": []
             },
-            "096cc04c-24fd-4f9c-877c-6f0a43615310": {
+            "c7189a69-2f03-4e48-87af-99906db0dc42": {
                 "size": {
-                    "width": 140,
-                    "height": 170
+                    "width": 60,
+                    "height": 60
                 },
                 "position": {
-                    "x": -390,
-                    "y": 180
+                    "x": 450,
+                    "y": 450
                 },
                 "z": 1,
-                "parent": "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                "embeds": [
-                    "2164204e-71ff-4ddc-b444-eb8dc4fd2b53"
-                ],
-                "iscontainedinside": [
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9"
-                ]
+                "embeds": []
+            },
+            "c8a0cb9d-e4ae-4227-b3b5-de8cbf783608": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 60,
+                    "y": 480
+                },
+                "z": 1,
+                "embeds": []
             },
             "2164204e-71ff-4ddc-b444-eb8dc4fd2b53": {
                 "size": {
@@ -647,24 +581,21 @@
                     "height": 60
                 },
                 "position": {
-                    "x": -360,
-                    "y": 210
+                    "x": 210,
+                    "y": 150
                 },
                 "z": 2,
-                "parent": "096cc04c-24fd-4f9c-877c-6f0a43615310",
+                "parent": "5fd70c6b-e80c-4156-be91-094bac0a45a9",
                 "embeds": [],
                 "isassociatedwith": [
                     "8df49797-026c-4373-96de-cd91c83b83a9"
                 ],
                 "iscontainedinside": [
-                    "096cc04c-24fd-4f9c-877c-6f0a43615310",
-                    "096cc04c-24fd-4f9c-877c-6f0a43615310",
-                    "096cc04c-24fd-4f9c-877c-6f0a43615310",
-                    "096cc04c-24fd-4f9c-877c-6f0a43615310",
                     "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "096cc04c-24fd-4f9c-877c-6f0a43615310",
-                    "096cc04c-24fd-4f9c-877c-6f0a43615310",
-                    "096cc04c-24fd-4f9c-877c-6f0a43615310"
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9"
+                ],
+                "dependson": [
+                    "c8a0cb9d-e4ae-4227-b3b5-de8cbf783608"
                 ]
             },
             "835ce6c5-8681-49dd-8b72-d391f6dbc99c": {
@@ -673,30 +604,19 @@
                     "height": 60
                 },
                 "position": {
-                    "x": -480,
-                    "y": 360
+                    "x": 90,
+                    "y": 270
                 },
-                "z": 1,
+                "z": 2,
                 "parent": "5fd70c6b-e80c-4156-be91-094bac0a45a9",
                 "embeds": [],
                 "iscontainedinside": [
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
-                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
                     "5fd70c6b-e80c-4156-be91-094bac0a45a9",
                     "5fd70c6b-e80c-4156-be91-094bac0a45a9"
                 ],
                 "dependson": [
                     "2164204e-71ff-4ddc-b444-eb8dc4fd2b53"
                 ]
-            },
-            "bf7831aa-6b4c-445a-8f3d-ef7a27b2a016": {
-                "source": {
-                    "id": "2164204e-71ff-4ddc-b444-eb8dc4fd2b53"
-                },
-                "target": {
-                    "id": "8df49797-026c-4373-96de-cd91c83b83a9"
-                },
-                "z": 4
             }
         }
     }
