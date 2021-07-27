@@ -19,7 +19,7 @@
             "Type": "String",
             "Description": "Name of DynamoDB table used to store the registrations",
             "MinLength": "3",
-            "Default": "Registration"
+            "Default": "Registration-local"
         },
         "CodeBucket": {
             "Type": "String",
@@ -45,27 +45,32 @@
         "TokenIssuer": {
             "Type": "String",
             "Description": "The domain of the tenant",
-            "MinLength": "3"
+            "MinLength": "3",
+            "Default": "https://alpha-identity.nice.org.uk/"
         },
         "Audience": {
             "Type": "String",
             "Description": "Audience of the API",
-            "MinLength": "3"
+            "MinLength": "3",
+            "Default": "https://alpha-identityapi.nice.org.uk/api"
         },
         "JwksURI": {
             "Type": "String",
-            "Description": "JWKS Ur",
-            "MinLength": "3"
+            "Description": "JSON Web Key Set Uri",
+            "MinLength": "3",
+            "Default": "https://alpha-identity.nice.org.uk/.well-known/jwks.json"
         },
         "CustomAuthorizerCodeBucket": {
             "Type": "String",
             "Description": "Location in S3 of the code to use for the custom authoriser for the API Gateway",
-            "MinLength": "10"
+            "MinLength": "10",
+            "Default": "jwcodefordevtotest"
         },
         "CustomAuthorizerCodeFilename": {
             "Type": "String",
             "Description": "Location in S3 of the code to use for the custom authoriser for the API Gateway",
-            "MinLength": "10"
+            "MinLength": "10",
+            "Default": "IdentityCustomAuthoriser.9+r2D41D48.zip"
         }
     },
     "Conditions": {
@@ -302,9 +307,7 @@
                 "Description": "Custom authorizer lambda function to authenticate REST API Gateway",
                 "MemorySize": 128,
                 "Timeout": 30,
-                "Role": {
-                    "Ref": "RoleForCustomAuthorizer"
-                },
+                "Role": {"Fn::GetAtt" : ["RoleForCustomAuthorizer", "Arn"] },
                 "Environment": {
                     "Variables": {
                         "TokenIssuer": {
