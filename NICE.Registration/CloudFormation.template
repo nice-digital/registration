@@ -1,7 +1,7 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Transform": "AWS::Serverless-2016-10-31",
-    "Description": "AWS Serverless API for Stakeholder Registration, using REST API lambda functions communicating with DynamoDB.",
+    "Description": "Stakeholder Registration - deploys API Gateway + Lambda functions for REST API along with CustomAuthoriser for API Gateway and optionally DynamoDb",
     "Parameters": {
         "ReadCapacity": {
             "Type": "Number",
@@ -15,12 +15,6 @@
             "Default": "2",
             "MinValue": 1
         },
-        "RegistrationTableName": {
-            "Type": "String",
-            "Description": "Name of DynamoDB table used to store the registrations",
-            "MinLength": "3",
-            "Default": "Registration-local"
-        },
         "CodeBucket": {
             "Type": "String",
             "Description": "Location in S3 of the code to use for the lambda functions",
@@ -31,7 +25,7 @@
             "Type": "String",
             "Description": "Location in S3 of the code to use for the lambda functions",
             "MinLength": "10",
-            "Default": "publish.zip"
+            "Default": "NICE.Registration.71+r0AFAE32.zip"
         },
         "ShouldCreateTable": {
             "Type": "String",
@@ -77,6 +71,12 @@
             "Description": "Stage name for the API Gateway",
             "MinLength": "2",
             "Default": "dev"
+        },
+        "RegistrationTableName": {
+            "Type": "String",
+            "Description": "Name of DynamoDB table used to store the registrations",
+            "MinLength": "3",
+            "Default": "Registration-alpha"
         }
     },
     "Conditions": {
@@ -346,19 +346,7 @@
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
                 "Name": "StakeholderRegistration",
-                "Description": {
-                        "Fn::Sub": [
-                            "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function}/invocations",
-                            {
-                                "Function": {
-                                    "Fn::GetAtt": [
-                                        "GetRegistrationsForUser",
-                                        "Arn"
-                                    ]
-                                }
-                            }
-                        ]
-                    },
+                "Description": "Stakeholder registration REST API",
                 "EndpointConfiguration": {
                     "Types": [
                         "REGIONAL"
@@ -459,6 +447,53 @@
                 "GetRegistrationsForUser"
             ]
         },
+        "POSTMethodForRegistrationAPIGateway": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+                "ResourceId": {
+                    "Fn::GetAtt": [
+                        "RegistrationRESTAPIGateway",
+                        "RootResourceId"
+                    ]
+                },
+                "HttpMethod": "POST",
+                "AuthorizationType": "CUSTOM",
+                "RestApiId": {
+                    "Ref": "RegistrationRESTAPIGateway"
+                },
+                "Integration": {
+                    "Type": "AWS_PROXY",
+                    "IntegrationHttpMethod": "POST",
+                    "PassthroughBehavior": "WHEN_NO_MATCH",
+                    "ContentHandling": "CONVERT_TO_TEXT",
+                    "Uri": {
+                        "Fn::Sub": [
+                            "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function}/invocations",
+                            {
+                                "Function": {
+                                    "Fn::GetAtt": [
+                                        "AddRegistration",
+                                        "Arn"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "TimeoutInMillis": 29000
+                },
+                "AuthorizerId": {
+                    "Ref": "CustomAuthoriserForRegistrationRESTAPIGateway"
+                }
+            },
+            "DependsOn": [
+                "AddRegistration"
+            ],
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "5d6be610-a785-47df-89b9-11190cb3a25c"
+                }
+            }
+        },
         "DeploymentOfRESTAPIGateway": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
@@ -475,8 +510,67 @@
                 }
             },
             "DependsOn": [
+                "GETMethodForRegistrationAPIGateway",
+                "POSTMethodForRegistrationAPIGateway"
+            ]
+        },
+        "PermissionForAPIGatewayToInvokeGetRegistrationLambda": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+                "Action": "lambda:InvokeFunction",
+                "FunctionName": {
+                    "Ref": "GetRegistrationsForUser"
+                },
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": {
+                    "Fn::Sub": [
+                        "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${APIId}/*/GET/",
+                        {
+                            "APIId": {
+                                "Ref": "RegistrationRESTAPIGateway"
+                            }
+                        }
+                    ]
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "029c7930-f04e-42ef-87d5-074903f2dae7"
+                }
+            },
+            "DependsOn": [
+                "RegistrationRESTAPIGateway",
                 "GETMethodForRegistrationAPIGateway"
             ]
+        },
+        "PermissionForAPIGatewayToInvokePOSTRegistrationLambda": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+                "Action": "lambda:InvokeFunction",
+                "FunctionName": {
+                    "Ref": "AddRegistration"
+                },
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": {
+                    "Fn::Sub": [
+                        "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${APIId}/*/POST/",
+                        {
+                            "APIId": {
+                                "Ref": "RegistrationRESTAPIGateway"
+                            }
+                        }
+                    ]
+                }
+            },
+            "DependsOn": [
+                "RegistrationRESTAPIGateway",
+                "POSTMethodForRegistrationAPIGateway"
+            ],
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "88246b69-c80c-4965-bc0f-311527b91238"
+                }
+            }
         }
     },
     "Outputs": {},
@@ -484,8 +578,8 @@
         "AWS::CloudFormation::Designer": {
             "5fd70c6b-e80c-4156-be91-094bac0a45a9": {
                 "size": {
-                    "width": 330,
-                    "height": 330
+                    "width": 310,
+                    "height": 270
                 },
                 "position": {
                     "x": 60,
@@ -494,6 +588,7 @@
                 "z": 1,
                 "embeds": [
                     "8df49797-026c-4373-96de-cd91c83b83a9",
+                    "5d6be610-a785-47df-89b9-11190cb3a25c",
                     "2164204e-71ff-4ddc-b444-eb8dc4fd2b53",
                     "835ce6c5-8681-49dd-8b72-d391f6dbc99c"
                 ]
@@ -536,6 +631,17 @@
                 "embeds": [],
                 "iscontainedinside": [
                     "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
                     "5fd70c6b-e80c-4156-be91-094bac0a45a9"
                 ]
             },
@@ -545,8 +651,8 @@
                     "height": 60
                 },
                 "position": {
-                    "x": 450,
-                    "y": 330
+                    "x": 300,
+                    "y": 480
                 },
                 "z": 1,
                 "embeds": []
@@ -557,8 +663,8 @@
                     "height": 60
                 },
                 "position": {
-                    "x": 450,
-                    "y": 450
+                    "x": 30,
+                    "y": 570
                 },
                 "z": 1,
                 "embeds": []
@@ -581,7 +687,7 @@
                     "height": 60
                 },
                 "position": {
-                    "x": 210,
+                    "x": 270,
                     "y": 150
                 },
                 "z": 2,
@@ -592,10 +698,18 @@
                 ],
                 "iscontainedinside": [
                     "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
                     "5fd70c6b-e80c-4156-be91-094bac0a45a9"
-                ],
-                "dependson": [
-                    "c8a0cb9d-e4ae-4227-b3b5-de8cbf783608"
                 ]
             },
             "835ce6c5-8681-49dd-8b72-d391f6dbc99c": {
@@ -612,10 +726,73 @@
                 "embeds": [],
                 "iscontainedinside": [
                     "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
                     "5fd70c6b-e80c-4156-be91-094bac0a45a9"
                 ],
                 "dependson": [
+                    "2164204e-71ff-4ddc-b444-eb8dc4fd2b53",
+                    "5d6be610-a785-47df-89b9-11190cb3a25c"
+                ]
+            },
+            "029c7930-f04e-42ef-87d5-074903f2dae7": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 60,
+                    "y": 480
+                },
+                "z": 1,
+                "embeds": [],
+                "dependson": [
                     "2164204e-71ff-4ddc-b444-eb8dc4fd2b53"
+                ]
+            },
+            "5d6be610-a785-47df-89b9-11190cb3a25c": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 180,
+                    "y": 150
+                },
+                "z": 2,
+                "parent": "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                "embeds": [],
+                "isassociatedwith": [
+                    "8df49797-026c-4373-96de-cd91c83b83a9"
+                ],
+                "iscontainedinside": [
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9",
+                    "5fd70c6b-e80c-4156-be91-094bac0a45a9"
+                ]
+            },
+            "88246b69-c80c-4965-bc0f-311527b91238": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 540,
+                    "y": 90
+                },
+                "z": 1,
+                "embeds": [],
+                "dependson": [
+                    "5d6be610-a785-47df-89b9-11190cb3a25c"
                 ]
             }
         }
