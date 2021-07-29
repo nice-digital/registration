@@ -646,7 +646,7 @@
         }
     },
     "Outputs": {
-        "AppGatewayAddress": {
+        "APIGatewayAddress": {
             "Description": "The address of the REST APIGateway",
             "Value": {
                 "Fn::Sub": [
@@ -663,7 +663,7 @@
             },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}-AppGatewayAddress"
+                    "Fn::Sub": "${AWS::StackName}-APIGatewayAddress"
                 }
             }
         }
