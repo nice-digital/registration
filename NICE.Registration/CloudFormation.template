@@ -125,7 +125,7 @@
                             ]
                         }
                     }
-                }                
+                }
             },
             "Metadata": {
                 "AWS::CloudFormation::Designer": {
@@ -179,43 +179,43 @@
                         "PolicyDocument": {
                             "Version": "2012-10-17",
                             "Statement": [
-                              {
-                                "Effect": "Allow",
-                                "Action": [
-                                  "dynamodb:GetItem",
-                                  "dynamodb:DeleteItem",
-                                  "dynamodb:PutItem",
-                                  "dynamodb:Scan",
-                                  "dynamodb:Query",
-                                  "dynamodb:UpdateItem",
-                                  "dynamodb:BatchWriteItem",
-                                  "dynamodb:BatchGetItem",
-                                  "dynamodb:DescribeTable",
-                                  "dynamodb:ConditionCheckItem"
-                                ],
-                                "Resource": [
-                                  {
-                                    "Fn::Sub": [
-                                      "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}",
-                                      {
-                                        "tableName": {
-                                          "Ref": "RegistrationTableName"
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "dynamodb:GetItem",
+                                        "dynamodb:DeleteItem",
+                                        "dynamodb:PutItem",
+                                        "dynamodb:Scan",
+                                        "dynamodb:Query",
+                                        "dynamodb:UpdateItem",
+                                        "dynamodb:BatchWriteItem",
+                                        "dynamodb:BatchGetItem",
+                                        "dynamodb:DescribeTable",
+                                        "dynamodb:ConditionCheckItem"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Sub": [
+                                                "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}",
+                                                {
+                                                    "tableName": {
+                                                        "Ref": "RegistrationTableName"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "Fn::Sub": [
+                                                "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}/index/*",
+                                                {
+                                                    "tableName": {
+                                                        "Ref": "RegistrationTableName"
+                                                    }
+                                                }
+                                            ]
                                         }
-                                      }
                                     ]
-                                  },
-                                  {
-                                    "Fn::Sub": [
-                                      "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}/index/*",
-                                      {
-                                        "tableName": {
-                                          "Ref": "RegistrationTableName"
-                                        }
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
+                                }
                             ]
                         }
                     }
@@ -251,7 +251,7 @@
                         "RoleForRegistrationLambdas",
                         "Arn"
                     ]
-                },               
+                },
                 "Environment": {
                     "Variables": {
                         "RegistrationTableName": {
@@ -266,7 +266,7 @@
                             ]
                         }
                     }
-                }                
+                }
             },
             "Metadata": {
                 "AWS::CloudFormation::Designer": {
@@ -394,13 +394,13 @@
                 },
                 "Environment": {
                     "Variables": {
-                        "TokenIssuer": {
+                        "TOKEN_ISSUER": {
                             "Ref": "TokenIssuer"
                         },
-                        "Audience": {
+                        "AUDIENCE": {
                             "Ref": "Audience"
                         },
-                        "JwksURI": {
+                        "JWKS_URI": {
                             "Ref": "JwksURI"
                         }
                     }
@@ -418,7 +418,7 @@
         "RegistrationRESTAPIGateway": {
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
-                "Name": "StakeholderRegistration",
+                "Name": { "Ref" : "AWS::StackName"},
                 "Description": "Stakeholder registration REST API",
                 "EndpointConfiguration": {
                     "Types": [
@@ -645,7 +645,29 @@
             }
         }
     },
-    "Outputs": {},
+    "Outputs": {
+        "AppGatewayAddress": {
+            "Description": "The address of the REST APIGateway",
+            "Value": {
+                "Fn::Sub": [
+                    "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}",
+                    {
+                        "RestApi": {
+                            "Ref": "RegistrationRESTAPIGateway"
+                        },
+                        "StageName": {
+                           "Ref": "Stage"
+                        }
+                    }
+                ]
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-AppGatewayAddress"
+                }
+            }
+        }
+    },
     "Metadata": {
         "AWS::CloudFormation::Designer": {
             "5fd70c6b-e80c-4156-be91-094bac0a45a9": {
@@ -892,24 +914,6 @@
                 },
                 "z": 1,
                 "embeds": []
-            },
-            "f33aa8ec-2a8f-4a21-ae60-8cef06a7cfc5": {
-                "source": {
-                    "id": "c7189a69-2f03-4e48-87af-99906db0dc42"
-                },
-                "target": {
-                    "id": "d93e8614-d93c-4406-9ae7-8a4b00d229e0"
-                },
-                "z": 3
-            },
-            "9196e8b8-1de4-4d49-8d72-c980d787a33c": {
-                "source": {
-                    "id": "c8a0cb9d-e4ae-4227-b3b5-de8cbf783608"
-                },
-                "target": {
-                    "id": "d93e8614-d93c-4406-9ae7-8a4b00d229e0"
-                },
-                "z": 4
             }
         }
     }
