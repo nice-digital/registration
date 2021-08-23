@@ -8,6 +8,9 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Amazon.Lambda.AspNetCoreServer.Internal;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -62,10 +65,20 @@ namespace NICE.Registration
         /// </summary>
         /// <param name="request">the UserNameIdentifier identifier needs to be passed by querystring or path parameter</param>
         /// <returns>The list of registrations</returns>
+        [Authorize(Policy = "Bearer")]
         public async Task<APIGatewayProxyResponse> GetRegistrationsForUserAsync(APIGatewayProxyRequest request, ILambdaContext context)
         {
             string userNameIdentifier = null;
             const string nameIdentifierPropertyName = nameof(Registration.UserNameIdentifier);
+
+            //var features = new InvokeFeatures();
+
+            //Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFunction.m
+            //MarshallRequest(features, request);
+
+            //var context = this.CreateContext(features);
+
+         //   var u = HttpContext.User;
 
             if (request.PathParameters != null && request.PathParameters.ContainsKey(nameIdentifierPropertyName))
 	            userNameIdentifier = request.PathParameters[nameIdentifierPropertyName];
