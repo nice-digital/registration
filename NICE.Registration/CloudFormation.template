@@ -92,7 +92,7 @@
         "GetRegistrationsForUser": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
-                "Handler": "NICE.Registration::NICE.Registration.Functions::GetRegistrationsForUserAsync",
+                "Handler": "NICE.Registration::NICE.Registration.LambdaEntryPoint::FunctionHandlerAsync",
                 "Runtime": "dotnetcore3.1",
                 "Code": {
                     "S3Key": {
@@ -233,7 +233,7 @@
         "AddRegistration": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
-                "Handler": "NICE.Registration::NICE.Registration.Functions::AddRegistrationAsync",
+                "Handler": "NICE.Registration::NICE.Registration.LambdaEntryPoint::FunctionHandlerAsync",
                 "Runtime": "dotnetcore3.1",
                 "Code": {
                     "S3Key": {
