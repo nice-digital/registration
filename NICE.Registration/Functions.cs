@@ -129,7 +129,7 @@ namespace NICE.Registration
             return new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
-                Body = JsonSerializer.Serialize(registrations.AllRegistrations), 
+                Body = JsonSerializer.Serialize(registrations.AllRegistrations, new JsonSerializerOptions{ PropertyNamingPolicy = JsonNamingPolicy.CamelCase}), 
                 Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
             };
         }

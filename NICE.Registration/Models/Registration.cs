@@ -16,6 +16,6 @@ namespace NICE.Registration.Models
 		public string Id => _registrationSubmission.Id;
 		public string Title => _interest.ProjectTitle;
 		public string Status => "Pending";
-		public DateTime CreatedTimestampUTC => _registrationSubmission.CreatedTimestampUTC;
+		public string DateSubmitted => _registrationSubmission.CreatedTimestampUTC.ToString("d");
 	}
 }
