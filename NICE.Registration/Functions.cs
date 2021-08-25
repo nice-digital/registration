@@ -3,14 +3,14 @@ using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Amazon.Lambda.AspNetCoreServer.Internal;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -60,6 +60,32 @@ namespace NICE.Registration
             this.DDBContext = new DynamoDBContext(ddbClient, config);
         }
 
+        private (string nameIdentifier, APIGatewayProxyResponse response) GetUserNameFromAuthorisationHeader(APIGatewayProxyRequest request, ILambdaContext context)
+        {
+	        if (!AuthenticationHeaderValue.TryParse(request.Headers[Microsoft.Net.Http.Headers.HeaderNames.Authorization], out var authenticationHeaderValue))
+	        {
+		        return (nameIdentifier:null, response: new APIGatewayProxyResponse
+		        {
+			        StatusCode = (int)HttpStatusCode.Unauthorized,
+			        Body = "Authorization header not found"
+		        });
+	        }
+	        var jwtSecurityToken = new JwtSecurityToken(authenticationHeaderValue.Parameter);
+	        var userNameIdentifier = jwtSecurityToken.Subject;
+
+	        if (string.IsNullOrEmpty(userNameIdentifier))
+	        {
+		        context.Logger.LogLine("Username not found in JWT token. This is a big problem!");
+		        return (nameIdentifier: null, response: new APIGatewayProxyResponse
+                {
+			        StatusCode = (int)HttpStatusCode.InternalServerError,
+			        Body = "Username not found"
+		        });
+	        }
+
+	        return (userNameIdentifier, null);
+        }
+
         /// <summary>
         /// A Lambda function that returns back all the registrations for a user - paging through the dynamodb table if necessary
         /// </summary>
@@ -68,30 +94,12 @@ namespace NICE.Registration
         [Authorize(Policy = "Bearer")]
         public async Task<APIGatewayProxyResponse> GetRegistrationsForUserAsync(APIGatewayProxyRequest request, ILambdaContext context)
         {
-            string userNameIdentifier = null;
             const string nameIdentifierPropertyName = nameof(Registration.UserNameIdentifier);
 
-            //var features = new InvokeFeatures();
-
-            //Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFunction.m
-            //MarshallRequest(features, request);
-
-            //var context = this.CreateContext(features);
-
-         //   var u = HttpContext.User;
-
-            if (request.PathParameters != null && request.PathParameters.ContainsKey(nameIdentifierPropertyName))
-	            userNameIdentifier = request.PathParameters[nameIdentifierPropertyName];
-            else if (request.QueryStringParameters != null && request.QueryStringParameters.ContainsKey(nameIdentifierPropertyName))
-	            userNameIdentifier = request.QueryStringParameters[nameIdentifierPropertyName];
-
-            if (string.IsNullOrEmpty(userNameIdentifier))
+            var (userNameIdentifier, response) = GetUserNameFromAuthorisationHeader(request, context);
+            if (response != null)
             {
-                return new APIGatewayProxyResponse
-                {
-                    StatusCode = (int)HttpStatusCode.BadRequest,
-                    Body = $"Missing required parameter {nameIdentifierPropertyName}"
-                };
+	            return response;
             }
 
             context.Logger.LogLine($"Getting registrations for {userNameIdentifier}");
@@ -112,14 +120,12 @@ namespace NICE.Registration
 
             context.Logger.LogLine($"Found {registrationsForUser.Count} registrations");
 
-            var response = new APIGatewayProxyResponse
+            return new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
                 Body = JsonSerializer.Serialize(registrationsForUser), 
                 Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
             };
-
-            return response;
         }
 
         /// <summary>
@@ -127,22 +133,29 @@ namespace NICE.Registration
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
+        [Authorize(Policy = "Bearer")]
         public async Task<APIGatewayProxyResponse> AddRegistrationAsync(APIGatewayProxyRequest request, ILambdaContext context)
         {
+	        var (userNameIdentifier, response) = GetUserNameFromAuthorisationHeader(request, context);
+	        if (response != null)
+	        {
+		        return response;
+	        }
+
             var registration = JsonSerializer.Deserialize<Registration>(request?.Body); 
 
             registration.Id = Guid.NewGuid().ToString();
+            registration.UserNameIdentifier = userNameIdentifier;
 
             context.Logger.LogLine($"Saving registration with id {registration.Id}");
             await DDBContext.SaveAsync<Registration>(registration);
 
-            var response = new APIGatewayProxyResponse
+            return new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
                 Body = registration.Id.ToString(),
                 Headers = new Dictionary<string, string> { { "Content-Type", "text/plain" } }
             };
-            return response;
         }
     }
 }
