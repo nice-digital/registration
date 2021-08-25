@@ -1,5 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
+    "Transform": "AWS::Serverless-2016-10-31",
     "Description": "Stakeholder Registration - deploys API Gateway + Lambda functions for REST API along with CustomAuthoriser for API Gateway and optionally DynamoDb",
     "Parameters": {
         "ReadCapacity": {
@@ -89,52 +90,87 @@
         }
     },
     "Resources": {
-        "GetRegistrationsForUser": {
-            "Type": "AWS::Lambda::Function",
-            "Properties": {
-                "Handler": "NICE.Registration::NICE.Registration.LambdaEntryPoint::FunctionHandlerAsync",
-                "Runtime": "dotnetcore3.1",
-                "Code": {
-                    "S3Key": {
+        "StakeholderRegAspNetCoreFunctions": {
+          "Type": "AWS::Serverless::Function",
+          "Properties": {
+            "Handler": "NICE.Registration::NICE.Registration.LambdaEntryPoint::FunctionHandlerAsync",
+            "Runtime": "dotnetcore3.1",
+            "CodeUri": {            
+                    "Key": {
                         "Ref": "CodeFilename"
                     },
-                    "S3Bucket": {
+                    "Bucket": {
                         "Ref": "CodeBucket"
                     }
                 },
-                "Description": "Function to get a list of blogs",
-                "MemorySize": 256,
-                "Timeout": 30,
-                "Role": {
-                    "Fn::GetAtt": [
-                        "RoleForRegistrationLambdas",
-                        "Arn"
-                    ]
+            "MemorySize": 256,
+            "Timeout": 30,
+            "Role": {
+                "Fn::GetAtt": [
+                    "RoleForRegistrationLambdas",
+                    "Arn"
+                ]
+            },
+            "Events": {
+              "ProxyResource": {
+                "Type": "Api",
+                "Properties": {
+                  "Path": "/{proxy+}",
+                  "Method": "ANY"
+                }
+              },
+              "RootResource": {
+                "Type": "Api",
+                "Properties": {
+                  "Path": "/",
+                  "Method": "ANY"
+                }
+              }
+            }
+          }
+        },
+        "RegistrationTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Condition": "CreateTable",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+                "TableName": {
+                    "Ref": "RegistrationTableName"
                 },
-                "Environment": {
-                    "Variables": {
-                        "RegistrationTableName": {
-                            "Fn::If": [
-                                "CreateTable",
-                                {
-                                    "Ref": "RegistrationTable"
-                                },
-                                {
-                                    "Ref": "RegistrationTableName"
-                                }
-                            ]
-                        }
+                "AttributeDefinitions": [
+                    {
+                        "AttributeName": "CreatedTimestampUTC",
+                        "AttributeType": "S"
+                    },
+                    {
+                        "AttributeName": "Id",
+                        "AttributeType": "S"
+                    }
+                ],
+                "KeySchema": [
+                    {
+                        "AttributeName": "Id",
+                        "KeyType": "HASH"
+                    },
+                    {
+                        "AttributeName": "CreatedTimestampUTC",
+                        "KeyType": "RANGE"
+                    }
+                ],
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": {
+                        "Ref": "ReadCapacity"
+                    },
+                    "WriteCapacityUnits": {
+                        "Ref": "WriteCapacity"
                     }
                 }
             },
             "Metadata": {
                 "AWS::CloudFormation::Designer": {
-                    "id": "c8a0cb9d-e4ae-4227-b3b5-de8cbf783608"
+                    "id": "8e7ed7c7-9a49-4cec-b881-a81e9830292e"
                 }
-            },
-            "DependsOn": [
-                "RoleForRegistrationLambdas"
-            ]
+            }
         },
         "RoleForRegistrationLambdas": {
             "Type": "AWS::IAM::Role",
@@ -229,445 +265,16 @@
                     "id": "d93e8614-d93c-4406-9ae7-8a4b00d229e0"
                 }
             }
-        },
-        "AddRegistration": {
-            "Type": "AWS::Lambda::Function",
-            "Properties": {
-                "Handler": "NICE.Registration::NICE.Registration.LambdaEntryPoint::FunctionHandlerAsync",
-                "Runtime": "dotnetcore3.1",
-                "Code": {
-                    "S3Key": {
-                        "Ref": "CodeFilename"
-                    },
-                    "S3Bucket": {
-                        "Ref": "CodeBucket"
-                    }
-                },
-                "Description": "Function to add a blog",
-                "MemorySize": 256,
-                "Timeout": 30,
-                "Role": {
-                    "Fn::GetAtt": [
-                        "RoleForRegistrationLambdas",
-                        "Arn"
-                    ]
-                },
-                "Environment": {
-                    "Variables": {
-                        "RegistrationTableName": {
-                            "Fn::If": [
-                                "CreateTable",
-                                {
-                                    "Ref": "RegistrationTable"
-                                },
-                                {
-                                    "Ref": "RegistrationTableName"
-                                }
-                            ]
-                        }
-                    }
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "c7189a69-2f03-4e48-87af-99906db0dc42"
-                }
-            },
-            "DependsOn": [
-                "RoleForRegistrationLambdas"
-            ]
-        },
-        "RegistrationTable": {
-            "Type": "AWS::DynamoDB::Table",
-            "Condition": "CreateTable",
-            "DeletionPolicy": "Retain",
-            "Properties": {
-                "TableName": {
-                    "Ref": "RegistrationTableName"
-                },
-                "AttributeDefinitions": [
-                    {
-                        "AttributeName": "CreatedTimestampUTC",
-                        "AttributeType": "S"
-                    },
-                    {
-                        "AttributeName": "Id",
-                        "AttributeType": "S"
-                    }
-                ],
-                "KeySchema": [
-                    {
-                        "AttributeName": "Id",
-                        "KeyType": "HASH"
-                    },
-                    {
-                        "AttributeName": "CreatedTimestampUTC",
-                        "KeyType": "RANGE"
-                    }
-                ],
-                "ProvisionedThroughput": {
-                    "ReadCapacityUnits": {
-                        "Ref": "ReadCapacity"
-                    },
-                    "WriteCapacityUnits": {
-                        "Ref": "WriteCapacity"
-                    }
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "8e7ed7c7-9a49-4cec-b881-a81e9830292e"
-                }
-            }
-        },
-        "RoleForCustomAuthorizer": {
-            "Type": "AWS::IAM::Role",
-            "Properties": {
-                "AssumeRolePolicyDocument": {
-                    "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Effect": "Allow",
-                            "Principal": {
-                                "Service": [
-                                    "lambda.amazonaws.com",
-                                    "apigateway.amazonaws.com"
-                                ]
-                            },
-                            "Action": "sts:AssumeRole"
-                        }
-                    ]
-                },
-                "ManagedPolicyArns": [
-                    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-                ],
-                "Policies": [
-                    {
-                        "PolicyName": "PolicyForCustomAuthorizerInline",
-                        "PolicyDocument": {
-                            "Version": "2012-10-17",
-                            "Statement": [
-                                {
-                                    "Effect": "Allow",
-                                    "Action": [
-                                        "lambda:InvokeFunction"
-                                    ],
-                                    "Resource": [
-                                        "*"
-                                    ]
-                                }
-                            ]
-                        }
-                    }
-                ],
-                "Description": "Allows Lambda functions to call AWS services on your behalf.",
-                "MaxSessionDuration": 3600,
-                "Path": "/"
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "cc7925cb-a970-49b1-897e-1619d6bd1b2b"
-                }
-            }
-        },
-        "CustomAuthorizerLambda": {
-            "Type": "AWS::Lambda::Function",
-            "Properties": {
-                "Handler": "index.handler",
-                "Runtime": "nodejs14.x",
-                "Code": {
-                    "S3Key": {
-                        "Ref": "CustomAuthorizerCodeFilename"
-                    },
-                    "S3Bucket": {
-                        "Ref": "CustomAuthorizerCodeBucket"
-                    }
-                },
-                "Description": "Custom authorizer lambda function to authenticate REST API Gateway",
-                "MemorySize": 128,
-                "Timeout": 30,
-                "Role": {
-                    "Fn::GetAtt": [
-                        "RoleForCustomAuthorizer",
-                        "Arn"
-                    ]
-                },
-                "Environment": {
-                    "Variables": {
-                        "TOKEN_ISSUER": {
-                            "Ref": "TokenIssuer"
-                        },
-                        "AUDIENCE": {
-                            "Ref": "Audience"
-                        },
-                        "JWKS_URI": {
-                            "Ref": "JwksURI"
-                        }
-                    }
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "90e9b4d8-aefe-4d9b-8234-670330e8698e"
-                }
-            },
-            "DependsOn": [
-                "RoleForCustomAuthorizer"
-            ]
-        },
-        "RegistrationRESTAPIGateway": {
-            "Type": "AWS::ApiGateway::RestApi",
-            "Properties": {
-                "Name": { "Ref" : "AWS::StackName"},
-                "Description": "Stakeholder registration REST API",
-                "EndpointConfiguration": {
-                    "Types": [
-                        "REGIONAL"
-                    ]
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "5fd70c6b-e80c-4156-be91-094bac0a45a9"
-                }
-            }
-        },
-        "CustomAuthoriserForRegistrationRESTAPIGateway": {
-            "Type": "AWS::ApiGateway::Authorizer",
-            "Properties": {
-                "RestApiId": {
-                    "Ref": "RegistrationRESTAPIGateway"
-                },
-                "AuthorizerResultTtlInSeconds": 3600,
-                "AuthorizerUri": {
-                    "Fn::Sub": [
-                        "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function}/invocations",
-                        {
-                            "Function": {
-                                "Fn::GetAtt": [
-                                    "CustomAuthorizerLambda",
-                                    "Arn"
-                                ]
-                            }
-                        }
-                    ]
-                },
-                "AuthorizerCredentials": {
-                    "Fn::GetAtt": [
-                        "RoleForCustomAuthorizer",
-                        "Arn"
-                    ]
-                },
-                "AuthType": "custom",
-                "IdentitySource": "method.request.header.Authorization",
-                "IdentityValidationExpression": "^Bearer [-0-9a-zA-Z\\._]*$",
-                "Type": "TOKEN",
-                "Name": "CustomAuthorizerForRegistration"
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "8df49797-026c-4373-96de-cd91c83b83a9"
-                }
-            },
-            "DependsOn": [
-                "CustomAuthorizerLambda"
-            ]
-        },
-        "GETMethodForRegistrationAPIGateway": {
-            "Type": "AWS::ApiGateway::Method",
-            "Properties": {
-                "ResourceId": {
-                    "Fn::GetAtt": [
-                        "RegistrationRESTAPIGateway",
-                        "RootResourceId"
-                    ]
-                },
-                "HttpMethod": "GET",
-                "AuthorizationType": "CUSTOM",
-                "RestApiId": {
-                    "Ref": "RegistrationRESTAPIGateway"
-                },
-                "Integration": {
-                    "Type": "AWS_PROXY",
-                    "IntegrationHttpMethod": "POST",
-                    "PassthroughBehavior": "WHEN_NO_MATCH",
-                    "ContentHandling": "CONVERT_TO_TEXT",
-                    "Uri": {
-                        "Fn::Sub": [
-                            "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function}/invocations",
-                            {
-                                "Function": {
-                                    "Fn::GetAtt": [
-                                        "GetRegistrationsForUser",
-                                        "Arn"
-                                    ]
-                                }
-                            }
-                        ]
-                    },
-                    "TimeoutInMillis": 29000
-                },
-                "AuthorizerId": {
-                    "Ref": "CustomAuthoriserForRegistrationRESTAPIGateway"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "2164204e-71ff-4ddc-b444-eb8dc4fd2b53"
-                }
-            },
-            "DependsOn": [
-                "GetRegistrationsForUser"
-            ]
-        },
-        "POSTMethodForRegistrationAPIGateway": {
-            "Type": "AWS::ApiGateway::Method",
-            "Properties": {
-                "ResourceId": {
-                    "Fn::GetAtt": [
-                        "RegistrationRESTAPIGateway",
-                        "RootResourceId"
-                    ]
-                },
-                "HttpMethod": "POST",
-                "AuthorizationType": "CUSTOM",
-                "RestApiId": {
-                    "Ref": "RegistrationRESTAPIGateway"
-                },
-                "Integration": {
-                    "Type": "AWS_PROXY",
-                    "IntegrationHttpMethod": "POST",
-                    "PassthroughBehavior": "WHEN_NO_MATCH",
-                    "ContentHandling": "CONVERT_TO_TEXT",
-                    "Uri": {
-                        "Fn::Sub": [
-                            "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function}/invocations",
-                            {
-                                "Function": {
-                                    "Fn::GetAtt": [
-                                        "AddRegistration",
-                                        "Arn"
-                                    ]
-                                }
-                            }
-                        ]
-                    },
-                    "TimeoutInMillis": 29000
-                },
-                "AuthorizerId": {
-                    "Ref": "CustomAuthoriserForRegistrationRESTAPIGateway"
-                }
-            },
-            "DependsOn": [
-                "AddRegistration"
-            ],
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "5d6be610-a785-47df-89b9-11190cb3a25c"
-                }
-            }
-        },
-        "DeploymentOfRESTAPIGateway": {
-            "Type": "AWS::ApiGateway::Deployment",
-            "Properties": {
-                "RestApiId": {
-                    "Ref": "RegistrationRESTAPIGateway"
-                },
-                "StageName": {
-                    "Ref": "Stage"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "835ce6c5-8681-49dd-8b72-d391f6dbc99c"
-                }
-            },
-            "DependsOn": [
-                "GETMethodForRegistrationAPIGateway",
-                "POSTMethodForRegistrationAPIGateway"
-            ]
-        },
-        "PermissionForAPIGatewayToInvokeGetRegistrationLambda": {
-            "Type": "AWS::Lambda::Permission",
-            "Properties": {
-                "Action": "lambda:InvokeFunction",
-                "FunctionName": {
-                    "Ref": "GetRegistrationsForUser"
-                },
-                "Principal": "apigateway.amazonaws.com",
-                "SourceArn": {
-                    "Fn::Sub": [
-                        "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${APIId}/*/GET/",
-                        {
-                            "APIId": {
-                                "Ref": "RegistrationRESTAPIGateway"
-                            }
-                        }
-                    ]
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "029c7930-f04e-42ef-87d5-074903f2dae7"
-                }
-            },
-            "DependsOn": [
-                "GETMethodForRegistrationAPIGateway"
-            ]
-        },
-        "PermissionForAPIGatewayToInvokePOSTRegistrationLambda": {
-            "Type": "AWS::Lambda::Permission",
-            "Properties": {
-                "Action": "lambda:InvokeFunction",
-                "FunctionName": {
-                    "Ref": "AddRegistration"
-                },
-                "Principal": "apigateway.amazonaws.com",
-                "SourceArn": {
-                    "Fn::Sub": [
-                        "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${APIId}/*/POST/",
-                        {
-                            "APIId": {
-                                "Ref": "RegistrationRESTAPIGateway"
-                            }
-                        }
-                    ]
-                }
-            },
-            "DependsOn": [
-                "RegistrationRESTAPIGateway",
-                "POSTMethodForRegistrationAPIGateway"
-            ],
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "88246b69-c80c-4965-bc0f-311527b91238"
-                }
-            }
         }
     },
     "Outputs": {
-        "APIGatewayAddress": {
-            "Description": "The address of the REST APIGateway",
-            "Value": {
-                "Fn::Sub": [
-                    "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}",
-                    {
-                        "RestApi": {
-                            "Ref": "RegistrationRESTAPIGateway"
-                        },
-                        "StageName": {
-                           "Ref": "Stage"
-                        }
-                    }
-                ]
-            },
-            "Export": {
-                "Name": {
-                    "Fn::Sub": "${AWS::StackName}-APIGatewayAddress"
-                }
-            }
+        "ApiURL": {
+          "Description": "API endpoint URL for Prod environment",
+          "Value": {
+            "Fn::Sub": "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+          }
         }
-    },
+      },
     "Metadata": {
         "AWS::CloudFormation::Designer": {
             "5fd70c6b-e80c-4156-be91-094bac0a45a9": {
