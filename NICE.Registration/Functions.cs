@@ -7,10 +7,12 @@ using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
+using NICE.Registration.Models;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -38,7 +40,7 @@ namespace NICE.Registration
                 tableName = "Registration-alpha";
             }
 
-            AWSConfigsDynamoDB.Context.TypeMappings[typeof(Registration)] = new Amazon.Util.TypeMapping(typeof(Registration), tableName);
+            AWSConfigsDynamoDB.Context.TypeMappings[typeof(RegistrationSubmission)] = new Amazon.Util.TypeMapping(typeof(RegistrationSubmission), tableName);
 
             var config = new DynamoDBContextConfig { Conversion = DynamoDBEntryConversion.V2 };
             this.DDBContext = new DynamoDBContext(new AmazonDynamoDBClient(), config);
@@ -53,7 +55,7 @@ namespace NICE.Registration
         {
             if (!string.IsNullOrEmpty(tableName))
             {
-                AWSConfigsDynamoDB.Context.TypeMappings[typeof(Registration)] = new Amazon.Util.TypeMapping(typeof(Registration), tableName);
+                AWSConfigsDynamoDB.Context.TypeMappings[typeof(Models.Registration)] = new Amazon.Util.TypeMapping(typeof(Models.Registration), tableName);
             }
 
             var config = new DynamoDBContextConfig { Conversion = DynamoDBEntryConversion.V2 };
@@ -94,7 +96,7 @@ namespace NICE.Registration
         [Authorize(Policy = "Bearer")]
         public async Task<APIGatewayProxyResponse> GetRegistrationsForUserAsync(APIGatewayProxyRequest request, ILambdaContext context)
         {
-            const string nameIdentifierPropertyName = nameof(Registration.UserNameIdentifier);
+            const string nameIdentifierPropertyName = nameof(RegistrationSubmission.UserNameIdentifier);
 
             var (userNameIdentifier, response) = GetUserNameFromAuthorisationHeader(request, context);
             if (response != null)
@@ -104,11 +106,11 @@ namespace NICE.Registration
 
             context.Logger.LogLine($"Getting registrations for {userNameIdentifier}");
 
-            var search = this.DDBContext.ScanAsync<Registration>(new List<ScanCondition>()
+            var search = this.DDBContext.ScanAsync<RegistrationSubmission>(new List<ScanCondition>()
             {
 	            new ScanCondition(nameIdentifierPropertyName, Amazon.DynamoDBv2.DocumentModel.ScanOperator.Equal, userNameIdentifier)
             });
-            var registrationsForUser = new List<Registration>();
+            var registrationsForUser = new List<RegistrationSubmission>();
 
             context.Logger.LogLine("About to query dynamodb");
             do
@@ -118,12 +120,16 @@ namespace NICE.Registration
                 registrationsForUser.AddRange(pageOfRegistrations);
             } while (!search.IsDone);
 
-            context.Logger.LogLine($"Found {registrationsForUser.Count} registrations");
+            context.Logger.LogLine($"Found {registrationsForUser.Count} registration submissions");
+
+            var registrations = new Registrations(registrationsForUser);
+
+            context.Logger.LogLine($"Total of {registrations.AllRegistrations.Count()} registrations");
 
             return new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
-                Body = JsonSerializer.Serialize(registrationsForUser), 
+                Body = JsonSerializer.Serialize(registrations.AllRegistrations), 
                 Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
             };
         }
@@ -142,13 +148,22 @@ namespace NICE.Registration
 		        return response;
 	        }
 
-            var registration = JsonSerializer.Deserialize<Registration>(request?.Body); 
+            var registration = JsonSerializer.Deserialize<RegistrationSubmission>(request?.Body);
+
+            if (!registration.Interests.Any())
+            {
+	            return new APIGatewayProxyResponse
+	            {
+		            StatusCode = (int) HttpStatusCode.InternalServerError,
+		            Body = "No interests found"
+	            };
+            }
 
             registration.Id = Guid.NewGuid().ToString();
             registration.UserNameIdentifier = userNameIdentifier;
 
             context.Logger.LogLine($"Saving registration with id {registration.Id}");
-            await DDBContext.SaveAsync<Registration>(registration);
+            await DDBContext.SaveAsync<RegistrationSubmission>(registration);
 
             return new APIGatewayProxyResponse
             {
