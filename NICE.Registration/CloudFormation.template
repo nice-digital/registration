@@ -264,7 +264,8 @@
                                     "Ref": "RegistrationTableName"
                                 }
                             ]
-                        }
+                        },
+                        "LAMBDA_NET_SERIALIZER_DEBUG" : true
                     }
                 }
             },
