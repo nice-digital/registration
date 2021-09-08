@@ -153,6 +153,7 @@ namespace NICE.Registration
 	        string jsonToDeserialise = request?.Body.Trim();
 
             context.Logger.LogLine($"About to deserialise:<start>{jsonToDeserialise}<end>");
+            context.Logger.LogLine($"About to deserialise new:<start>{jsonToDeserialise}<end>");
             var registration = JsonSerializer.Deserialize<RegistrationSubmission>(jsonToDeserialise);
             context.Logger.LogLine("deserialised:");
 
