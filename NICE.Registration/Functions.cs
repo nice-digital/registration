@@ -196,7 +196,7 @@ namespace NICE.Registration
             return new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
-                Body = registration.Id.ToString(),
+                Body = "{\"id\": \"" + registration.Id + "\"}",
                 Headers = new Dictionary<string, string> { { "Content-Type", "text/plain" } }
             };
         }
