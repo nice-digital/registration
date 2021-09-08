@@ -172,11 +172,17 @@ namespace NICE.Registration
 
             if (registration.Projects == null || !registration.Projects.Any())
             {
-	            return new APIGatewayProxyResponse
+                context.Logger.LogLine("no projects found");
+                context.Logger.LogLine($"original json: {jsonToDeserialise}");
+                //JSONConvert
+                
+                //context.Logger.LogLine($"deserialised and reserialised json: {serialiser.Serialize<RegistrationSubmission>(registration)}");
+
+                return new APIGatewayProxyResponse
 	            {
 		            StatusCode = (int) HttpStatusCode.InternalServerError,
-		            Body = "No projects found"
-	            };
+		            Body = "{\"errormessage\": \"No projects found\"}"
+                };
             }
 
             registration.Id = Guid.NewGuid().ToString();
