@@ -150,8 +150,10 @@ namespace NICE.Registration
 		        return response;
 	        }
 
-	        context.Logger.LogLine($"About to deserialise: {request?.Body}");
-            var registration = JsonSerializer.Deserialize<RegistrationSubmission>(request?.Body);
+	        string jsonToDeserialise = request?.Body.Trim();
+
+            context.Logger.LogLine($"About to deserialise:<start>{jsonToDeserialise}<end>");
+            var registration = JsonSerializer.Deserialize<RegistrationSubmission>(jsonToDeserialise);
             context.Logger.LogLine("deserialised:");
 
             if (registration.Projects == null || !registration.Projects.Any())
