@@ -158,16 +158,17 @@ namespace NICE.Registration
             context.Logger.LogLine($"About to deserialise:<start>{jsonToDeserialise}<end>");
             context.Logger.LogLine($"About to deserialise with lambda json.net serialiser:<start>{jsonToDeserialise}<end>");
 
-            var registration = JsonSerializer.Deserialize<RegistrationSubmission>(jsonToDeserialise);
+            var serialiser = new Amazon.Lambda.Serialization.Json.JsonSerializer();
+			// var registration = serialiser.Deserialize<RegistrationSubmission>(jsonToDeserialise);
 
-            //var serialiser = new JsonSerializer();
+			//var serialiser = new JsonSerializer();
 
-            //var byteArray = Encoding.UTF8.GetBytes(jsonToDeserialise);
-            //var stream = new MemoryStream(byteArray);
-            //var registration = serialiser.Deserialize<RegistrationSubmission>(stream);
+			var byteArray = Encoding.UTF8.GetBytes(jsonToDeserialise);
+			var stream = new MemoryStream(byteArray);
+			var registration = serialiser.Deserialize<RegistrationSubmission>(stream);
 
-            //var registration = JsonSerializer.Deserialize<RegistrationSubmission>(jsonToDeserialise);
-            context.Logger.LogLine("deserialised:");
+			//var registration = JsonSerializer.Deserialize<RegistrationSubmission>(jsonToDeserialise);
+			context.Logger.LogLine("deserialised:");
 
             if (registration.Projects == null || !registration.Projects.Any())
             {
