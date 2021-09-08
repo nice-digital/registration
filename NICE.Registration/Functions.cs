@@ -14,11 +14,11 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Amazon.Lambda.Serialization.SystemTextJson;
+//using Amazon.Lambda.Serialization.SystemTextJson;
 using NICE.Registration.Models;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
-[assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
+[assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
 
 namespace NICE.Registration
 {
@@ -156,13 +156,15 @@ namespace NICE.Registration
 	        string jsonToDeserialise = request?.Body.Trim();
 
             context.Logger.LogLine($"About to deserialise:<start>{jsonToDeserialise}<end>");
-            context.Logger.LogLine($"About to deserialise with lambda json serialiser:<start>{jsonToDeserialise}<end>");
+            context.Logger.LogLine($"About to deserialise with lambda json.net serialiser:<start>{jsonToDeserialise}<end>");
 
-            var serialiser = new DefaultLambdaJsonSerializer();
+            var registration = JsonSerializer.Deserialize<RegistrationSubmission>(jsonToDeserialise);
 
-            var byteArray = Encoding.UTF8.GetBytes(jsonToDeserialise);
-            var stream = new MemoryStream(byteArray);
-            var registration = serialiser.Deserialize<RegistrationSubmission>(stream);
+            //var serialiser = new JsonSerializer();
+
+            //var byteArray = Encoding.UTF8.GetBytes(jsonToDeserialise);
+            //var stream = new MemoryStream(byteArray);
+            //var registration = serialiser.Deserialize<RegistrationSubmission>(stream);
 
             //var registration = JsonSerializer.Deserialize<RegistrationSubmission>(jsonToDeserialise);
             context.Logger.LogLine("deserialised:");
