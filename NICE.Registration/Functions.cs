@@ -101,7 +101,7 @@ namespace NICE.Registration
         [Authorize(Policy = "Bearer")]
         public async Task<APIGatewayProxyResponse> GetRegistrationsForUserAsync(APIGatewayProxyRequest request, ILambdaContext context)
         {
-            const string nameIdentifierPropertyName = "UserNameIdentifier"; // nameof(RegistrationSubmission.UserNameIdentifier);
+            const string nameIdentifierPropertyName = nameof(RegistrationSubmission.UserNameIdentifier);
 
             var (userNameIdentifier, response) = GetUserNameFromAuthorisationHeader(request, context);
             if (response != null)
@@ -170,27 +170,27 @@ namespace NICE.Registration
 			//var registration = JsonSerializer.Deserialize<RegistrationSubmission>(jsonToDeserialise);
 			context.Logger.LogLine("deserialised:");
 
-            //if (registration.Projects == null || !registration.Projects.Any())
-            //{
-	           // return new APIGatewayProxyResponse
-	           // {
-		          //  StatusCode = (int) HttpStatusCode.InternalServerError,
-		          //  Body = "No projects found"
-	           // };
-            //}
+            if (registration.Projects == null || !registration.Projects.Any())
+            {
+	            return new APIGatewayProxyResponse
+	            {
+		            StatusCode = (int) HttpStatusCode.InternalServerError,
+		            Body = "No projects found"
+	            };
+            }
 
-            //registration.Id = Guid.NewGuid().ToString();
-            //context.Logger.LogLine($"setting name identifier to: {userNameIdentifier}");
-            //registration.UserNameIdentifier = userNameIdentifier;
-            //context.Logger.LogLine("set name identifier");
+            registration.Id = Guid.NewGuid().ToString();
+            context.Logger.LogLine($"setting name identifier to: {userNameIdentifier}");
+            registration.UserNameIdentifier = userNameIdentifier;
+            context.Logger.LogLine("set name identifier");
 
-            //context.Logger.LogLine($"Saving registration with id {registration.Id}");
-            //await DDBContext.SaveAsync<RegistrationSubmission>(registration);
+            context.Logger.LogLine($"Saving registration with id {registration.Id}");
+            await DDBContext.SaveAsync<RegistrationSubmission>(registration);
 
             return new APIGatewayProxyResponse
             {
                 StatusCode = (int)HttpStatusCode.OK,
-                Body = "done!", // registration.Id.ToString(),
+                Body = registration.Id.ToString(),
                 Headers = new Dictionary<string, string> { { "Content-Type", "text/plain" } }
             };
         }
