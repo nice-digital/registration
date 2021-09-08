@@ -85,7 +85,9 @@ namespace NICE.Registration
 		        });
 	        }
 
-	        return (userNameIdentifier, null);
+            context.Logger.LogLine($"nameIdentifier found: {userNameIdentifier}");
+
+            return (userNameIdentifier, null);
         }
 
         /// <summary>
@@ -148,7 +150,9 @@ namespace NICE.Registration
 		        return response;
 	        }
 
+	        context.Logger.LogLine($"About to deserialise: {request?.Body}");
             var registration = JsonSerializer.Deserialize<RegistrationSubmission>(request?.Body);
+            context.Logger.LogLine("deserialised:");
 
             if (registration.Projects == null || !registration.Projects.Any())
             {
@@ -160,7 +164,9 @@ namespace NICE.Registration
             }
 
             registration.Id = Guid.NewGuid().ToString();
+            context.Logger.LogLine($"setting name identifier to: {userNameIdentifier}");
             registration.UserNameIdentifier = userNameIdentifier;
+            context.Logger.LogLine("set name identifier");
 
             context.Logger.LogLine($"Saving registration with id {registration.Id}");
             await DDBContext.SaveAsync<RegistrationSubmission>(registration);
