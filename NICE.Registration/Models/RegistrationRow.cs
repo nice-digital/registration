@@ -2,19 +2,19 @@ using System;
 
 namespace NICE.Registration.Models
 {
-	public class Registration
+	public class RegistrationRow
 	{
 		private readonly RegistrationSubmission _registrationSubmission;
-		private readonly Interest _interest;
+		private readonly Project _project;
 
-		public Registration(RegistrationSubmission registrationSubmission, Interest interest)
+		public RegistrationRow(RegistrationSubmission registrationSubmission, Project project)
 		{
 			_registrationSubmission = registrationSubmission;
-			_interest = interest;
+			_project = project;
 		}
 
-		public string Id => $"{_registrationSubmission.Id}:{_interest.ProjectID}";
-		public string Title => _interest.ProjectTitle;
+		public string Id => $"{_registrationSubmission.Id}:{_project.Id}";
+		public string Title => _project.Title;
 		public string Status => "Pending";
 		public string DateSubmitted => _registrationSubmission.CreatedTimestampUTC.ToString("d");
 	}

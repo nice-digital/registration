@@ -37,7 +37,7 @@ namespace NICE.Registration
             var tableName = System.Environment.GetEnvironmentVariable(TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP);
             if(string.IsNullOrEmpty(tableName))
             {
-                tableName = "Registration-alpha";
+                tableName = "Registration-local";
             }
 
             AWSConfigsDynamoDB.Context.TypeMappings[typeof(RegistrationSubmission)] = new Amazon.Util.TypeMapping(typeof(RegistrationSubmission), tableName);
@@ -55,7 +55,7 @@ namespace NICE.Registration
         {
             if (!string.IsNullOrEmpty(tableName))
             {
-                AWSConfigsDynamoDB.Context.TypeMappings[typeof(Models.Registration)] = new Amazon.Util.TypeMapping(typeof(Models.Registration), tableName);
+                AWSConfigsDynamoDB.Context.TypeMappings[typeof(Models.RegistrationSubmission)] = new Amazon.Util.TypeMapping(typeof(Models.RegistrationSubmission), tableName);
             }
 
             var config = new DynamoDBContextConfig { Conversion = DynamoDBEntryConversion.V2 };
@@ -122,7 +122,7 @@ namespace NICE.Registration
 
             context.Logger.LogLine($"Found {registrationsForUser.Count} registration submissions");
 
-            var registrations = new Registrations(registrationsForUser);
+            var registrations = new RegistrationsTable(registrationsForUser);
 
             context.Logger.LogLine($"Total of {registrations.AllRegistrations.Count()} registrations");
 
@@ -150,12 +150,12 @@ namespace NICE.Registration
 
             var registration = JsonSerializer.Deserialize<RegistrationSubmission>(request?.Body);
 
-            if (!registration.Interests.Any())
+            if (registration.Projects == null || !registration.Projects.Any())
             {
 	            return new APIGatewayProxyResponse
 	            {
 		            StatusCode = (int) HttpStatusCode.InternalServerError,
-		            Body = "No interests found"
+		            Body = "No projects found"
 	            };
             }
 
