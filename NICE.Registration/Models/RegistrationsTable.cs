@@ -10,9 +10,10 @@ namespace NICE.Registration.Models
 	{
 		public RegistrationsTable(IEnumerable<RegistrationSubmission> registrations)
 		{
-			AllRegistrations =  from registration in registrations 
-				from interest in registration.Projects
-				select new RegistrationRow(registration, interest);
+			AllRegistrations = from registration in registrations
+							   from interest in registration.Projects
+							   orderby registration.CreatedTimestampUTC descending
+							   select new RegistrationRow(registration, interest);
 		}
 
 		public IEnumerable<RegistrationRow> AllRegistrations { get; set; }

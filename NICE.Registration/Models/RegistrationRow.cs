@@ -15,7 +15,10 @@ namespace NICE.Registration.Models
 
 		public string Id => $"{_registrationSubmission.Id}:{_project.Id}";
 		public string Title => _project.Title;
+		public string ProjectID => _project.Id;
+		public string ProductTypeName => _project.ProductTypeName;
 		public string Status => "Pending";
-		public string DateSubmitted => _registrationSubmission.CreatedTimestampUTC.ToString("d");
+		public string DateSubmitted => _registrationSubmission.CreatedTimestampUTC.ToString("dd/MM/yyyy HH:mm");
+		
 	}
 }
