@@ -200,5 +200,40 @@ namespace NICE.Registration
                 Headers = new Dictionary<string, string> { { "Content-Type", "text/plain" } }
             };
         }
+
+        /// <summary>
+        /// A Lambda function that returns back the users information from the last registration
+        /// </summary>
+        /// <param name="request">the UserNameIdentifier identifier needs to be passed by querystring or path parameter</param>
+        /// <returns>The users information form the last registration</returns>
+        [Authorize(Policy = "Bearer")]
+        public async Task<APIGatewayProxyResponse> GetRegDataForFormPrePopulationAsync(APIGatewayProxyRequest request, ILambdaContext context)
+        {
+            const string nameIdentifierPropertyName = nameof(RegistrationSubmission.UserNameIdentifier);
+
+            var (userNameIdentifier, response) = GetUserNameFromAuthorisationHeader(request, context);
+            if (response != null)
+            {
+                return response;
+            }
+            context.Logger.LogLine($"Getting registrations for {userNameIdentifier}");
+
+            var search = this.DDBContext.ScanAsync<RegistrationSubmission>(new List<ScanCondition>()
+            {
+                new ScanCondition(nameIdentifierPropertyName, Amazon.DynamoDBv2.DocumentModel.ScanOperator.Equal, userNameIdentifier)
+            });
+
+            var pageOfRegistrations = await search.GetNextSetAsync();
+            var registrationsForUser = pageOfRegistrations.FirstOrDefault();
+
+            context.Logger.LogLine(registrationsForUser != null ? $"Found 1 submission {registrationsForUser.Id}" : $"Found 0 submissions");
+
+            return new APIGatewayProxyResponse
+            {
+                StatusCode = (int)HttpStatusCode.OK,
+                Body = JsonSerializer.Serialize(registrationsForUser, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
+                Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
+            };
+        }
     }
 }

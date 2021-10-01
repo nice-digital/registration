@@ -644,6 +644,53 @@
                     "id": "88246b69-c80c-4965-bc0f-311527b91238"
                 }
             }
+        },
+         "GetRegDataForFormPrePopulation": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Handler": "NICE.Registration::NICE.Registration.Functions::GetRegDataForFormPrePopulationAsync",
+                "Runtime": "dotnetcore3.1",
+                "Code": {
+                    "S3Key": {
+                        "Ref": "CodeFilename"
+                    },
+                    "S3Bucket": {
+                        "Ref": "CodeBucket"
+                    }
+                },
+                "Description": "Function to get data to prepopulate wizard",
+                "MemorySize": 256,
+                "Timeout": 30,
+                "Role": {
+                    "Fn::GetAtt": [
+                        "RoleForRegistrationLambdas",
+                        "Arn"
+                    ]
+                },
+                "Environment": {
+                    "Variables": {
+                        "RegistrationTableName": {
+                            "Fn::If": [
+                                "CreateTable",
+                                {
+                                    "Ref": "RegistrationTable"
+                                },
+                                {
+                                    "Ref": "RegistrationTableName"
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "c8a0cb9d-e4ae-4227-b3b5-de8cbf783608"
+                }
+            },
+            "DependsOn": [
+                "RoleForRegistrationLambdas"
+            ]
         }
     },
     "Outputs": {

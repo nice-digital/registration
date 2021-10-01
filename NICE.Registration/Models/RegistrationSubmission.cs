@@ -24,6 +24,9 @@ namespace NICE.Registration.Models
 		[JsonPropertyName("organisationName")]
 		public string OrganisationName { get; set; }
 
+        [JsonPropertyName("organisationType")]
+        public string OrganisationType { get; set; }
+
 		[JsonPropertyName("addressLine1")]
 		public string AddressLine1 { get; set; }
 
