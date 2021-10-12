@@ -265,7 +265,7 @@
                                 }
                             ]
                         },
-                        "LAMBDA_NET_SERIALIZER_DEBUG" : true
+                        "LAMBDA_NET_SERIALIZER_DEBUG": true
                     }
                 }
             },
@@ -274,6 +274,49 @@
                     "id": "c7189a69-2f03-4e48-87af-99906db0dc42"
                 }
             },
+            "DependsOn": [
+                "RoleForRegistrationLambdas"
+            ]
+        },
+        "GetRegDataForFormPrePopulation": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Handler": "NICE.Registration::NICE.Registration.Functions::GetRegDataForFormPrePopulationAsync",
+                "Runtime": "dotnetcore3.1",
+                "Code": {
+                    "S3Key": {
+                        "Ref": "CodeFilename"
+                    },
+                    "S3Bucket": {
+                        "Ref": "CodeBucket"
+                    }
+                },
+                "Description": "Function to get data to prepopulate wizard",
+                "MemorySize": 256,
+                "Timeout": 30,
+                "Role": {
+                    "Fn::GetAtt": [
+                        "RoleForRegistrationLambdas",
+                        "Arn"
+                    ]
+                },
+                "Environment": {
+                    "Variables": {
+                        "RegistrationTableName": {
+                            "Fn::If": [
+                                "CreateTable",
+                                {
+                                    "Ref": "RegistrationTable"
+                                },
+                                {
+                                    "Ref": "RegistrationTableName"
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "Metadata": {},
             "DependsOn": [
                 "RoleForRegistrationLambdas"
             ]
@@ -419,7 +462,9 @@
         "RegistrationRESTAPIGateway": {
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
-                "Name": { "Ref" : "AWS::StackName"},
+                "Name": {
+                    "Ref": "AWS::StackName"
+                },
                 "Description": "Stakeholder registration REST API",
                 "EndpointConfiguration": {
                     "Types": [
@@ -430,6 +475,21 @@
             "Metadata": {
                 "AWS::CloudFormation::Designer": {
                     "id": "5fd70c6b-e80c-4156-be91-094bac0a45a9"
+                }
+            }
+        },
+        "APIGatewayPrePopResource": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+                "RestApiId": {
+                    "Ref": "RegistrationRESTAPIGateway"
+                },
+                "PathPart": "PrePopulation",
+                "ParentId": {
+                    "Fn::GetAtt": [
+                        "RegistrationRESTAPIGateway",
+                        "RootResourceId"
+                    ]
                 }
             }
         },
@@ -568,6 +628,46 @@
                 }
             }
         },
+        "GETMethodForPrePopulationAPIGateway": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+                "ResourceId": {
+                    "Ref": "APIGatewayPrePopResource"
+                },
+                "HttpMethod": "GET",
+                "AuthorizationType": "CUSTOM",
+                "RestApiId": {
+                    "Ref": "RegistrationRESTAPIGateway"
+                },
+                "Integration": {
+                    "Type": "AWS_PROXY",
+                    "IntegrationHttpMethod": "POST",
+                    "PassthroughBehavior": "WHEN_NO_MATCH",
+                    "ContentHandling": "CONVERT_TO_TEXT",
+                    "Uri": {
+                        "Fn::Sub": [
+                            "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function}/invocations",
+                            {
+                                "Function": {
+                                    "Fn::GetAtt": [
+                                        "GetRegDataForFormPrePopulation",
+                                        "Arn"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "TimeoutInMillis": 29000
+                },
+                "AuthorizerId": {
+                    "Ref": "CustomAuthoriserForRegistrationRESTAPIGateway"
+                }
+            },
+            "Metadata": {},
+            "DependsOn": [
+                "GetRegDataForFormPrePopulation"
+            ]
+        },
         "DeploymentOfRESTAPIGateway": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
@@ -644,53 +744,6 @@
                     "id": "88246b69-c80c-4965-bc0f-311527b91238"
                 }
             }
-        },
-         "GetRegDataForFormPrePopulation": {
-            "Type": "AWS::Lambda::Function",
-            "Properties": {
-                "Handler": "NICE.Registration::NICE.Registration.Functions::GetRegDataForFormPrePopulationAsync",
-                "Runtime": "dotnetcore3.1",
-                "Code": {
-                    "S3Key": {
-                        "Ref": "CodeFilename"
-                    },
-                    "S3Bucket": {
-                        "Ref": "CodeBucket"
-                    }
-                },
-                "Description": "Function to get data to prepopulate wizard",
-                "MemorySize": 256,
-                "Timeout": 30,
-                "Role": {
-                    "Fn::GetAtt": [
-                        "RoleForRegistrationLambdas",
-                        "Arn"
-                    ]
-                },
-                "Environment": {
-                    "Variables": {
-                        "RegistrationTableName": {
-                            "Fn::If": [
-                                "CreateTable",
-                                {
-                                    "Ref": "RegistrationTable"
-                                },
-                                {
-                                    "Ref": "RegistrationTableName"
-                                }
-                            ]
-                        }
-                    }
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "c8a0cb9d-e4ae-4227-b3b5-de8cbf783608"
-                }
-            },
-            "DependsOn": [
-                "RoleForRegistrationLambdas"
-            ]
         }
     },
     "Outputs": {
@@ -704,7 +757,7 @@
                             "Ref": "RegistrationRESTAPIGateway"
                         },
                         "StageName": {
-                           "Ref": "Stage"
+                            "Ref": "Stage"
                         }
                     }
                 ]
