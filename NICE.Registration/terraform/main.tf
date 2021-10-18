@@ -5,6 +5,11 @@ terraform {
       version = "~> 3.62"
     }
   }
+  backend "s3" {
+    bucket = "jwterraformstate"
+    key    = "dev_state"
+    region = "eu-west-1"
+  }
 
   required_version = ">= 0.14.9"
 }
